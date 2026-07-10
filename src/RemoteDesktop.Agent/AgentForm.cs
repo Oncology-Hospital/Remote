@@ -14,6 +14,13 @@ public sealed class AgentForm : Form
     private readonly Label _machineInfo = new() { AutoSize = true };
     private readonly Label _remoteStatus = new() { AutoSize = true };
     private readonly Label _lockStatus = new() { AutoSize = true };
+    private readonly Label _versionLabel = new()
+    {
+        Dock = DockStyle.Fill,
+        ForeColor = Color.RoyalBlue,
+        Font = new Font("Segoe UI", 9, FontStyle.Bold),
+        TextAlign = ContentAlignment.MiddleCenter
+    };
     private readonly Label _supportHint = new()
     {
         AutoSize = true,
@@ -80,11 +87,12 @@ public sealed class AgentForm : Form
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
 
-        var top = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 2 };
+        var top = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 5, RowCount = 2 };
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112));
+        top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70));
         top.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
         top.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
 
@@ -93,6 +101,7 @@ public sealed class AgentForm : Form
         top.Controls.Add(_serverUrl, 1, 0);
         top.Controls.Add(_connectButton, 2, 0);
         top.Controls.Add(_supportButton, 3, 0);
+        top.Controls.Add(_versionLabel, 4, 0);
         top.Controls.Add(_machineInfo, 1, 1);
 
         var statusPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
@@ -125,12 +134,13 @@ public sealed class AgentForm : Form
 
     private void ApplyLanguage()
     {
-        Text = AgentLanguage.T("Title");
+        Text = $"{AgentLanguage.T("Title")} - {ApplicationVersionInfo.Display}";
         _serverLabel.Text = AgentLanguage.T("Server");
         _serverUrl.Text = AgentLanguage.T("AutoDiscovery");
         _status.Text = AgentLanguage.T("Disconnected");
         _remoteStatus.Text = AgentLanguage.T("RemoteOff");
         _lockStatus.Text = AgentLanguage.T("MouseUnlocked");
+        _versionLabel.Text = ApplicationVersionInfo.Display;
         _supportButton.Text = AgentLanguage.T("Support");
         _sendChatButton.Text = AgentLanguage.T("Send");
         _unlockButton.Text = AgentLanguage.T("UnlockMouse");

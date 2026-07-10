@@ -23,11 +23,11 @@ public sealed class LoginForm : Form
     private bool _showingAdminLogin;
 
     private string CurrentLanguage => _currentLanguage;
-    private bool IsVietnamese => CurrentLanguage == "vi";
+    internal bool IsVietnamese => CurrentLanguage == "vi";
 
     public LoginForm()
     {
-        Text = "Remote Desktop";
+        Text = $"Remote Desktop - {ApplicationVersionInfo.Display}";
         Width = 460;
         Height = 300;
         MinimumSize = new Size(460, 300);
@@ -74,7 +74,7 @@ public sealed class LoginForm : Form
         _showingAdminLogin = false;
         AcceptButton = null;
         _content.Controls.Clear();
-        Text = "Remote Desktop";
+        Text = $"Remote Desktop - {ApplicationVersionInfo.Display}";
         ApplyButtonText();
         ApplyMenuText();
 
@@ -82,13 +82,14 @@ public sealed class LoginForm : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 4,
+            RowCount = 5,
             Padding = new Padding(24, 34, 24, 24)
         };
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 62));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
 
         root.Controls.Add(new Label
         {
@@ -122,6 +123,7 @@ public sealed class LoginForm : Form
         actions.Controls.Add(_agentButton, 1, 0);
 
         root.Controls.Add(actions, 0, 2);
+        root.Controls.Add(CreateVersionLabel(), 0, 4);
         _content.Controls.Add(root);
     }
 
@@ -131,7 +133,9 @@ public sealed class LoginForm : Form
         _content.Controls.Clear();
         _message.Text = "";
         _password.Text = "";
-        Text = IsVietnamese ? "\u0110\u0103ng nh\u1EADp qu\u1EA3n tr\u1ECB Remote Desktop" : "Remote Desktop Admin Login";
+        Text = IsVietnamese
+            ? $"\u0110\u0103ng nh\u1EADp qu\u1EA3n tr\u1ECB - {ApplicationVersionInfo.Display}"
+            : $"Remote Desktop Admin Login - {ApplicationVersionInfo.Display}";
         ApplyButtonText();
         ApplyMenuText();
 
@@ -139,7 +143,7 @@ public sealed class LoginForm : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 5,
+            RowCount = 6,
             Padding = new Padding(24, 34, 24, 24)
         };
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
@@ -147,6 +151,7 @@ public sealed class LoginForm : Form
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
 
         root.Controls.Add(new Label
         {
@@ -170,6 +175,7 @@ public sealed class LoginForm : Form
         actions.Controls.Add(_loginButton);
         actions.Controls.Add(_backButton);
         root.Controls.Add(actions, 0, 4);
+        root.Controls.Add(CreateVersionLabel(), 0, 5);
 
         _content.Controls.Add(root);
         AcceptButton = _loginButton;
@@ -196,6 +202,19 @@ public sealed class LoginForm : Form
         input.Dock = DockStyle.Fill;
         panel.Controls.Add(input, 1, 0);
         return panel;
+    }
+
+    private Control CreateVersionLabel()
+    {
+        return new Label
+        {
+            Text = IsVietnamese
+                ? $"Phi\u00EAn b\u1EA3n {ApplicationVersionInfo.Display}"
+                : $"Version {ApplicationVersionInfo.Display}",
+            Dock = DockStyle.Fill,
+            ForeColor = Color.DimGray,
+            TextAlign = ContentAlignment.BottomRight
+        };
     }
 
     private void LoginAdmin()

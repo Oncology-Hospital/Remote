@@ -13,7 +13,11 @@ static class Program
         ApplicationConfiguration.Initialize();
 
         var loginForm = new LoginForm();
-        loginForm.Shown += async (_, _) => await AutoUpdateService.CheckAndApplyAsync();
+        loginForm.Shown += async (_, _) =>
+        {
+            AutoUpdateService.ShowCompletedUpdateIfPending(loginForm, loginForm.IsVietnamese);
+            await AutoUpdateService.CheckAndApplyAsync(loginForm, loginForm.IsVietnamese);
+        };
 
         Application.Run(loginForm);
     }

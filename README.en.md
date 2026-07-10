@@ -37,7 +37,9 @@ that should be installed or distributed to users.
 - Locking and unlocking the physical mouse on an Agent computer.
 - Support requests sent from an Agent to the administrator.
 - Vietnamese and English interfaces.
-- Automatic updates from GitHub Releases.
+- The current version displayed on the mode-selection screen and window titles.
+- Update notifications and visible download, preparation, and installation
+  progress for releases from GitHub.
 
 ## Requirements
 
@@ -220,8 +222,10 @@ git push origin v1.0.1
 
 GitHub Actions installs the dependencies, publishes the application, creates
 the Velopack packages, and uploads the installer to GitHub Releases. Installed
-copies check for a newer release at startup, download it, apply it, and restart
-the application.
+copies check for a newer release at startup. When one is found, the application
+shows the current and target versions and lets the user update immediately or
+postpone it. Download progress is visible, and the application reports both the
+pending restart and the successful update after restart.
 
 Published versions are available at:
 

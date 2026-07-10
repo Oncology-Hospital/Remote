@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
+using RemoteDesktop.Agent;
 using RemoteDesktop.Server;
 
 namespace RemoteDesktop.AdminApp;
@@ -23,7 +24,7 @@ public sealed class AdminForm : Form
     public AdminForm(string adminName = "admin", string language = "vi")
     {
         _language = language == "en" ? "en" : "vi";
-        Text = $"Remote Desktop Admin - {adminName}";
+        Text = $"Remote Desktop Admin - {adminName} - {ApplicationVersionInfo.Display}";
         _statusLabel.Text = _language == "vi" ? "Đang khởi động máy chủ nội bộ..." : "Starting local server...";
         Width = 1280;
         Height = 820;
@@ -79,7 +80,8 @@ public sealed class AdminForm : Form
         await _webView.EnsureCoreWebView2Async(environment);
         _webView.CoreWebView2.Settings.AreDevToolsEnabled = true;
         _webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
-        _webView.Source = new Uri($"{LocalAdminUrl}?lang={_language}");
+        var version = Uri.EscapeDataString(ApplicationVersionInfo.Current);
+        _webView.Source = new Uri($"{LocalAdminUrl}?lang={_language}&version={version}");
 
         Controls.Remove(_statusLabel);
         Controls.Add(_webView);

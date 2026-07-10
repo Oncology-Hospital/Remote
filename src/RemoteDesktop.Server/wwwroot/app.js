@@ -1,4 +1,6 @@
-const language = new URLSearchParams(window.location.search).get("lang") === "en" ? "en" : "vi";
+const query = new URLSearchParams(window.location.search);
+const language = query.get("lang") === "en" ? "en" : "vi";
+let appVersion = query.get("version")?.trim() ?? "";
 const translations = {
     vi: {
         appTitle: "Remote Desktop - Quản trị",
@@ -107,6 +109,7 @@ const selectedName = document.getElementById("selectedName");
 const selectedMeta = document.getElementById("selectedMeta");
 const connectionStatus = document.getElementById("connectionStatus");
 const refreshButton = document.getElementById("refreshButton");
+const appVersionLabel = document.getElementById("appVersion");
 const connectButton = document.getElementById("connectButton");
 const remoteControlButton = document.getElementById("remoteControlButton");
 const lockButton = document.getElementById("lockButton");
@@ -124,6 +127,7 @@ const chatTitle = document.getElementById("chatTitle");
 const chatSendButton = document.getElementById("chatSendButton");
 
 applyLanguage();
+loadApplicationVersion();
 
 const connection = new signalR.HubConnectionBuilder()
     .withUrl("/remoteHub")
@@ -634,7 +638,7 @@ function renderSidebarTabs() {
 
 function applyLanguage() {
     document.documentElement.lang = language;
-    document.title = t("appTitle");
+    updateVersionDisplay();
     brandTitle.textContent = t("brandTitle");
     connectionStatus.textContent = t("disconnected");
     document.querySelector(".rail-button.active").textContent = "•";
@@ -649,6 +653,31 @@ function applyLanguage() {
     chatTarget.textContent = t("noTarget");
     chatInput.placeholder = t("chatPlaceholder");
     chatSendButton.textContent = t("send");
+}
+
+async function loadApplicationVersion() {
+    if (!appVersion) {
+        try {
+            const response = await fetch("/version", { cache: "no-store" });
+            if (response.ok) {
+                const payload = await response.json();
+                appVersion = String(payload.version ?? "").trim();
+            }
+        } catch {
+            appVersion = "";
+        }
+    }
+
+    updateVersionDisplay();
+}
+
+function updateVersionDisplay() {
+    const displayVersion = appVersion ? `v${appVersion.replace(/^v/i, "")}` : "v--";
+    appVersionLabel.textContent = displayVersion;
+    appVersionLabel.title = language === "vi"
+        ? `Phiên bản đang chạy: ${displayVersion}`
+        : `Running version: ${displayVersion}`;
+    document.title = `${t("appTitle")} - ${displayVersion}`;
 }
 
 function markSupportRead(machineId) {

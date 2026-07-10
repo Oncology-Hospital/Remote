@@ -35,7 +35,9 @@ nên dùng khi cài đặt hoặc gửi ứng dụng cho người dùng.
 - Khóa hoặc mở khóa chuột vật lý trên máy Agent.
 - Gửi yêu cầu hỗ trợ từ Agent đến quản trị viên.
 - Giao diện tiếng Việt và tiếng Anh.
-- Tự kiểm tra, tải và cài đặt phiên bản mới từ GitHub Releases.
+- Hiển thị phiên bản hiện tại trên màn hình chọn chế độ và tiêu đề cửa sổ.
+- Tự kiểm tra phiên bản mới từ GitHub Releases, thông báo cho người dùng và
+  hiển thị tiến trình tải, chuẩn bị, cài đặt.
 
 ## Yêu cầu
 
@@ -215,8 +217,10 @@ git push origin v1.0.1
 ```
 
 GitHub Actions sẽ cài dependency, publish ứng dụng, tạo gói Velopack và đăng
-installer lên GitHub Releases. Bản đã cài sẽ kiểm tra release mới khi khởi động,
-tải gói cập nhật, cài đặt rồi mở lại ứng dụng.
+installer lên GitHub Releases. Bản đã cài sẽ kiểm tra release mới khi khởi động.
+Khi phát hiện bản mới, ứng dụng hiển thị version hiện tại, version mới và cho
+phép cập nhật ngay hoặc để sau. Quá trình tải có thanh tiến trình; ứng dụng báo
+trước khi khởi động lại và xác nhận khi cập nhật thành công.
 
 Danh sách phiên bản đã phát hành:
 

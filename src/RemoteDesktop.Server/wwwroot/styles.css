@@ -304,6 +304,20 @@ button:hover {
     gap: 8px;
 }
 
+.version-badge {
+    min-width: 66px;
+    padding: 7px 10px;
+    border: 1px solid #b9d5f2;
+    border-radius: 999px;
+    background: #eaf4ff;
+    color: var(--accent-strong);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+}
+
 #connectButton {
     background: var(--accent);
     border-color: var(--accent);

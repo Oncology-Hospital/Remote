@@ -1,4 +1,5 @@
 using Microsoft.Extensions.FileProviders;
+using System.Reflection;
 
 namespace RemoteDesktop.Server;
 
@@ -44,8 +45,27 @@ public static class ServerHost
         }
 
         app.MapGet("/health", () => Results.Ok(new { status = "ok", timeUtc = DateTime.UtcNow }));
+        app.MapGet("/version", () => Results.Ok(new { version = ReadApplicationVersion() }));
         app.MapHub<RemoteHub>("/remoteHub");
 
         return app;
+    }
+
+    private static string ReadApplicationVersion()
+    {
+        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        var informationalVersion = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+
+        if (!string.IsNullOrWhiteSpace(informationalVersion))
+        {
+            return informationalVersion.Split('+', 2)[0];
+        }
+
+        var version = assembly.GetName().Version;
+        return version is null
+            ? "0.0.0"
+            : $"{version.Major}.{version.Minor}.{Math.Max(version.Build, 0)}";
     }
 }
