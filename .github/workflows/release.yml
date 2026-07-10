@@ -70,6 +70,15 @@ jobs:
             --mainExe RemoteDesktop.AdminApp.exe `
             --packTitle "Oncology Hospital Remote"
 
+      - name: Create CNTT installer copy
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem ./Releases -Filter "*-Setup.exe" | Select-Object -First 1
+          if ($null -eq $installer) {
+            throw "Velopack setup file was not created."
+          }
+          Copy-Item -LiteralPath $installer.FullName -Destination ./Releases/CNTT_Remote.exe -Force
+
       - name: Publish GitHub release
         shell: pwsh
         env:
@@ -81,3 +90,11 @@ jobs:
             --releaseName "Remote Desktop ${{ steps.version.outputs.value }}" `
             --tag ${{ github.ref_name }}
 
+      - name: Upload CNTT installer name
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $originalInstaller = Get-ChildItem ./Releases -Filter "*-Setup.exe" | Select-Object -First 1
+          gh release upload "${{ github.ref_name }}" ./Releases/CNTT_Remote.exe --clobber
+          gh release delete-asset "${{ github.ref_name }}" $originalInstaller.Name --yes

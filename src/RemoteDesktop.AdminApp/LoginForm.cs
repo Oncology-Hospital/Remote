@@ -202,19 +202,6 @@ public sealed class LoginForm : Form
     {
         _message.Text = "";
 
-        if (!AccountStore.HasAccounts())
-        {
-            MessageBox.Show(
-                this,
-                IsVietnamese
-                    ? $"Chưa có tài khoản quản trị. Hãy cấu hình file:\n{AccountStore.ConfigurationPath}"
-                    : $"No admin account is configured. Configure this file:\n{AccountStore.ConfigurationPath}",
-                Text,
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
-            return;
-        }
-
         var account = AccountStore.Validate(_username.Text.Trim(), _password.Text);
         if (account is null || !account.Role.Equals("admin", StringComparison.OrdinalIgnoreCase))
         {

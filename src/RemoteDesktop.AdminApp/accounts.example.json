@@ -1,8 +1,7 @@
 [
   {
-    "username": "your-admin-account",
-    "password": "change-this-password",
+    "username": ".\\administrator",
+    "password": "cntt@it",
     "role": "admin"
   }
 ]
-

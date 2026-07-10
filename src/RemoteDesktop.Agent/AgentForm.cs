@@ -21,10 +21,10 @@ public sealed class AgentForm : Form
         ForeColor = Color.DimGray
     };
     private readonly Button _connectButton = new();
-    private readonly Button _disconnectButton = new() { Enabled = false };
     private readonly Button _supportButton = new();
     private readonly Button _sendChatButton = new();
-    private readonly Button _unlockButton = new();
+    private readonly Button _unlockButton = new() { AutoSize = true, Enabled = false };
+    private readonly ToolTip _toolTip = new();
     private readonly System.Windows.Forms.Timer _heartbeatTimer = new() { Interval = 3000 };
     private readonly System.Windows.Forms.Timer _screenTimer = new() { Interval = 250 };
     private readonly System.Windows.Forms.Timer _cursorTimer = new() { Interval = 50 };
@@ -80,11 +80,10 @@ public sealed class AgentForm : Form
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
 
-        var top = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 5, RowCount = 2 };
+        var top = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 2 };
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 82));
-        top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92));
+        top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112));
         top.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
         top.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
@@ -93,8 +92,7 @@ public sealed class AgentForm : Form
         _serverUrl.Dock = DockStyle.Fill;
         top.Controls.Add(_serverUrl, 1, 0);
         top.Controls.Add(_connectButton, 2, 0);
-        top.Controls.Add(_disconnectButton, 3, 0);
-        top.Controls.Add(_supportButton, 4, 0);
+        top.Controls.Add(_supportButton, 3, 0);
         top.Controls.Add(_machineInfo, 1, 1);
 
         var statusPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
@@ -133,18 +131,17 @@ public sealed class AgentForm : Form
         _status.Text = AgentLanguage.T("Disconnected");
         _remoteStatus.Text = AgentLanguage.T("RemoteOff");
         _lockStatus.Text = AgentLanguage.T("MouseUnlocked");
-        _connectButton.Text = AgentLanguage.T("Connect");
-        _disconnectButton.Text = AgentLanguage.T("Disconnect");
         _supportButton.Text = AgentLanguage.T("Support");
         _sendChatButton.Text = AgentLanguage.T("Send");
         _unlockButton.Text = AgentLanguage.T("UnlockMouse");
+        _toolTip.SetToolTip(_unlockButton, AgentLanguage.T("UnlockMouseHint"));
         _supportHint.Text = AgentLanguage.T("SupportHint");
+        UpdateConnectionUi();
     }
 
     private void WireEvents()
     {
-        _connectButton.Click += async (_, _) => await ConnectAsync();
-        _disconnectButton.Click += async (_, _) => await DisconnectAsync();
+        _connectButton.Click += async (_, _) => await ToggleConnectionAsync();
         _supportButton.Click += async (_, _) => await ShowSupportDialogAsync();
         _sendChatButton.Click += async (_, _) => await SendChatAsync();
         _chatInput.KeyDown += async (_, e) =>
@@ -155,10 +152,27 @@ public sealed class AgentForm : Form
                 await SendChatAsync();
             }
         };
-        _unlockButton.Click += (_, _) => SetMouseLocked(false);
+        _unlockButton.Click += async (_, _) => await UnlockMouseAsync();
         _heartbeatTimer.Tick += async (_, _) => await SafeInvokeAsync(() => _connection!.InvokeAsync("Heartbeat", _machine.MachineId));
         _screenTimer.Tick += async (_, _) => await SendScreenFrameAsync();
         _cursorTimer.Tick += async (_, _) => await SendCursorPositionAsync();
+    }
+
+    private async Task ToggleConnectionAsync()
+    {
+        if (_isConnecting)
+        {
+            return;
+        }
+
+        if (_connection is null)
+        {
+            await ConnectAsync();
+        }
+        else
+        {
+            await DisconnectAsync();
+        }
     }
 
     private async Task ConnectAsync()
@@ -177,7 +191,7 @@ public sealed class AgentForm : Form
         }
 
         _isConnecting = true;
-        _connectButton.Enabled = false;
+        UpdateConnectionUi();
         _machine = MachineIdentity.Create();
         UpdateMachineLabel();
 
@@ -227,8 +241,10 @@ public sealed class AgentForm : Form
                 _status.Text = AgentLanguage.T("Disconnected");
                 SetStreaming(false);
                 SetMouseLocked(false);
-                _connectButton.Enabled = true;
-                _disconnectButton.Enabled = false;
+                _heartbeatTimer.Stop();
+                _cursorTimer.Stop();
+                _connection = null;
+                UpdateConnectionUi();
             });
             return Task.CompletedTask;
         };
@@ -238,8 +254,6 @@ public sealed class AgentForm : Form
             await _connection.StartAsync();
             await _connection.InvokeAsync("RegisterMachine", _machine);
             _status.Text = AgentLanguage.T("Connected");
-            _connectButton.Enabled = false;
-            _disconnectButton.Enabled = true;
             _heartbeatTimer.Start();
             _cursorTimer.Start();
             AppendChat(AgentLanguage.T("ConnectedLog"));
@@ -247,13 +261,16 @@ public sealed class AgentForm : Form
         catch (Exception ex)
         {
             AppendChat(AgentLanguage.Format("ConnectFailed", ex.Message));
-            await _connection.DisposeAsync();
+            if (_connection is not null)
+            {
+                await _connection.DisposeAsync();
+            }
             _connection = null;
-            _connectButton.Enabled = true;
         }
         finally
         {
             _isConnecting = false;
+            UpdateConnectionUi();
         }
     }
 
@@ -271,8 +288,22 @@ public sealed class AgentForm : Form
         }
 
         _status.Text = AgentLanguage.T("Disconnected");
-        _connectButton.Enabled = true;
-        _disconnectButton.Enabled = false;
+        UpdateConnectionUi();
+    }
+
+    private void UpdateConnectionUi()
+    {
+        var hasConnection = _connection is not null;
+
+        _connectButton.Text = _isConnecting
+            ? AgentLanguage.T("Connecting")
+            : AgentLanguage.T(hasConnection ? "Disconnect" : "Connect");
+        _connectButton.Enabled = !_isConnecting;
+        _serverUrl.Enabled = !hasConnection && !_isConnecting;
+
+        _connectButton.UseVisualStyleBackColor = !hasConnection;
+        _connectButton.BackColor = hasConnection ? Color.MistyRose : SystemColors.Control;
+        _connectButton.ForeColor = hasConnection ? Color.DarkRed : SystemColors.ControlText;
     }
 
     private async Task StartAutoDiscoveryAsync()
@@ -383,6 +414,19 @@ public sealed class AgentForm : Form
     {
         _mouseBlocker.SetLocked(locked);
         _lockStatus.Text = locked ? AgentLanguage.T("MouseLocked") : AgentLanguage.T("MouseUnlocked");
+        _unlockButton.Enabled = locked;
+    }
+
+    private async Task UnlockMouseAsync()
+    {
+        // Always restore local input first, even if the server is no longer reachable.
+        SetMouseLocked(false);
+
+        if (_connection is not null)
+        {
+            await SafeInvokeAsync(() =>
+                _connection.InvokeAsync("SetMouseLock", _machine.MachineId, false));
+        }
     }
 
     private async Task SendScreenFrameAsync()

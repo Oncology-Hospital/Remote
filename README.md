@@ -67,20 +67,27 @@ phiên bản đã ghi trong `package-lock.json`.
 
 ## Cấu hình tài khoản quản trị
 
-Tài khoản quản trị được đọc từ file:
+Ứng dụng tự tạo tài khoản quản trị mặc định khi file tài khoản chưa tồn tại hoặc
+đang chứa `[]`:
+
+```text
+Tài khoản: .\administrator
+Mật khẩu:  cntt@it
+```
+
+Tài khoản được lưu tại:
 
 ```text
 %LocalAppData%\Oncology-Hospital\Remote\accounts.json
 ```
 
-Nếu file chưa tồn tại, ứng dụng sẽ tạo một danh sách trống. Có thể sao chép cấu
-trúc từ `src/RemoteDesktop.AdminApp/accounts.example.json`:
+Nội dung được tạo tự động có dạng:
 
 ```json
 [
   {
-    "username": "your-admin-account",
-    "password": "change-this-password",
+    "username": ".\\administrator",
+    "password": "cntt@it",
     "role": "admin"
   }
 ]
@@ -90,9 +97,8 @@ File tài khoản thật đã được thêm vào `.gitignore` và không nằm 
 hoặc gói cập nhật. Dữ liệu đặt trong `%LocalAppData%` cũng không bị ghi đè khi
 nâng cấp ứng dụng.
 
-Mật khẩu hiện vẫn được lưu dưới dạng văn bản thuần. Chỉ nên dùng tài khoản dành
-riêng cho ứng dụng, không dùng lại mật khẩu Windows, email hoặc các hệ thống
-khác.
+Mật khẩu được lưu dưới dạng văn bản thuần và giống nhau trên mọi bản cài đặt.
+Đây là tài khoản riêng của ứng dụng, không phải tài khoản Windows thật.
 
 ## Chạy bằng Visual Studio
 
@@ -120,8 +126,9 @@ http://localhost:5000/remoteHub
 http://IP_MAY_CHU:5000/remoteHub
 ```
 
-Nhấn `Kết nối` trên Agent. Sau khi máy xuất hiện trong danh sách quản trị, chọn
-máy rồi nhấn `Kết nối` để bắt đầu xem màn hình.
+Nhấn `Kết nối` trên Agent. Khi kết nối thành công, chính nút này đổi thành
+`Ngắt kết nối` và có màu đỏ nhạt. Sau khi máy xuất hiện trong danh sách quản
+trị, chọn máy rồi nhấn `Kết nối` để bắt đầu xem màn hình.
 
 Các phím tắt chính trong giao diện quản trị:
 
@@ -129,8 +136,10 @@ Các phím tắt chính trong giao diện quản trị:
 - `F5`: kết nối hoặc ngắt phiên điều khiển.
 - `F11`: bật hoặc thoát chế độ toàn màn hình.
 
-Agent luôn có nút `Mở khóa chuột` để người dùng tại máy đó tự khôi phục chuột
-khi cần.
+Nút `Mở khóa chuột` chỉ được bật khi quản trị viên đang khóa chuột vật lý của
+máy Agent. Người dùng tại máy có thể nhấn nút này để lấy lại quyền điều khiển
+chuột ngay lập tức; thao tác này không ngắt kết nối và không dừng truyền màn
+hình.
 
 ## Chạy máy chủ bằng trình duyệt
 
@@ -182,7 +191,7 @@ dotnet publish .\src\RemoteDesktop.AdminApp\RemoteDesktop.AdminApp.csproj `
 ```
 
 Thư mục `publish` chỉ dùng làm đầu vào để tạo installer. Người dùng cuối nên
-cài file `OncologyHospital.Remote-win-Setup.exe` từ GitHub Releases để Velopack
+cài file `CNTT_Remote.exe` từ GitHub Releases để Velopack
 có thể quản lý các lần cập nhật tiếp theo.
 
 ## Phát hành phiên bản mới

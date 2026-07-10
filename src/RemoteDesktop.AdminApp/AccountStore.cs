@@ -4,6 +4,9 @@ namespace RemoteDesktop.AdminApp;
 
 internal static class AccountStore
 {
+    private const string DefaultUsername = ".\\administrator";
+    private const string DefaultPassword = "cntt@it";
+
     private static readonly string DataDirectory = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "Oncology-Hospital",
@@ -25,10 +28,6 @@ internal static class AccountStore
                 account.Password == password);
     }
 
-    public static bool HasAccounts() => LoadAccounts().Count > 0;
-
-    public static string ConfigurationPath => AccountsPath;
-
     private static IReadOnlyList<UserAccount> LoadAccounts()
     {
         Directory.CreateDirectory(DataDirectory);
@@ -45,13 +44,29 @@ internal static class AccountStore
             }
             else
             {
-                File.WriteAllText(AccountsPath, "[]");
-                return [];
+                return CreateDefaultAccounts();
             }
         }
 
         var json = File.ReadAllText(AccountsPath);
-        return JsonSerializer.Deserialize<List<UserAccount>>(json, JsonOptions) ?? [];
+        var accounts = JsonSerializer.Deserialize<List<UserAccount>>(json, JsonOptions) ?? [];
+        return accounts.Count == 0 ? CreateDefaultAccounts() : accounts;
+    }
+
+    private static IReadOnlyList<UserAccount> CreateDefaultAccounts()
+    {
+        var accounts = new[]
+        {
+            new UserAccount
+            {
+                Username = DefaultUsername,
+                Password = DefaultPassword,
+                Role = "admin"
+            }
+        };
+
+        File.WriteAllText(AccountsPath, JsonSerializer.Serialize(accounts, JsonOptions));
+        return accounts;
     }
 }
 

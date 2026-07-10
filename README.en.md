@@ -69,20 +69,27 @@ versions recorded in `package-lock.json`.
 
 ## Administrator account configuration
 
-Administrator accounts are read from:
+The application creates the default administrator account when the account file
+does not exist or contains `[]`:
+
+```text
+Username: .\administrator
+Password: cntt@it
+```
+
+The account is stored at:
 
 ```text
 %LocalAppData%\Oncology-Hospital\Remote\accounts.json
 ```
 
-If this file does not exist, the application creates an empty account list. Use
-`src/RemoteDesktop.AdminApp/accounts.example.json` as the starting point:
+The generated content is:
 
 ```json
 [
   {
-    "username": "your-admin-account",
-    "password": "change-this-password",
+    "username": ".\\administrator",
+    "password": "cntt@it",
     "role": "admin"
   }
 ]
@@ -92,8 +99,8 @@ The real `accounts.json` file is excluded by `.gitignore` and is not included in
 the installer or update packages. Files under `%LocalAppData%` are preserved
 when the application is updated.
 
-Passwords are currently stored as plain text. Use an account created only for
-this application. Do not reuse a Windows, email, or other system password.
+The password is stored as plain text and is the same on every installation. It
+is an application account, not the actual Windows administrator account.
 
 ## Running from Visual Studio
 
@@ -121,8 +128,10 @@ http://localhost:5000/remoteHub
 http://SERVER_IP:5000/remoteHub
 ```
 
-Press `Connect` in the Agent. When the computer appears in the administration
-list, select it and press `Connect` to start viewing its screen.
+Press `Connect` in the Agent. After a successful connection, the same button
+changes to `Disconnect` and uses a light-red background. When the computer
+appears in the administration list, select it and press `Connect` to start
+viewing its screen.
 
 The main administration shortcuts are:
 
@@ -130,8 +139,10 @@ The main administration shortcuts are:
 - `F5`: connect or disconnect the remote-control session.
 - `F11`: enter or leave full-screen mode.
 
-The Agent window always provides an `Unlock mouse` button so that the local user
-can restore mouse input when necessary.
+The `Unlock mouse` button is enabled only while the administrator is blocking
+physical mouse input on the Agent computer. The local user can press it to
+restore mouse control immediately. It does not disconnect the Agent or stop
+screen streaming.
 
 ## Running the server in a browser
 
@@ -184,7 +195,7 @@ dotnet publish .\src\RemoteDesktop.AdminApp\RemoteDesktop.AdminApp.csproj `
 ```
 
 The `publish` directory is an input for the installer build. End users should
-install `OncologyHospital.Remote-win-Setup.exe` from GitHub Releases so that
+install `CNTT_Remote.exe` from GitHub Releases so that
 Velopack can manage future updates.
 
 ## Publishing a new version
