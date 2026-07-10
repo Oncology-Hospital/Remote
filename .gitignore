@@ -1,0 +1,16 @@
+.vs/
+**/bin/
+**/obj/
+**/node_modules/
+
+*.user
+*.slnLaunch.user
+*.log
+
+dist/
+publish/
+Releases/
+
+# Local credentials. Commit accounts.example.json only.
+src/RemoteDesktop.AdminApp/accounts.json
+

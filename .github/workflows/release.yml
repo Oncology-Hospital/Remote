@@ -1,0 +1,83 @@
+name: Publish release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+env:
+  VELOPACK_VERSION: "1.2.0"
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Install web dependencies
+        run: npm ci --prefix src/RemoteDesktop.Server
+
+      - name: Read version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".Substring(1)
+          if ($version -notmatch '^\d+\.\d+\.\d+([-.][0-9A-Za-z.-]+)?$') {
+            throw "Tag must use semantic versioning, for example v1.0.0."
+          }
+          "value=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Publish application
+        shell: pwsh
+        run: |
+          dotnet publish `
+            ./src/RemoteDesktop.AdminApp/RemoteDesktop.AdminApp.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:Version=${{ steps.version.outputs.value }} `
+            --output ./publish
+
+      - name: Install Velopack CLI
+        run: dotnet tool install --global vpk --version ${{ env.VELOPACK_VERSION }}
+
+      - name: Download previous release
+        shell: pwsh
+        env:
+          VPK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          vpk download github `
+            --repoUrl https://github.com/${{ github.repository }}
+
+      - name: Build Velopack package
+        shell: pwsh
+        run: |
+          vpk pack `
+            --packId OncologyHospital.Remote `
+            --packVersion ${{ steps.version.outputs.value }} `
+            --packDir ./publish `
+            --mainExe RemoteDesktop.AdminApp.exe `
+            --packTitle "Oncology Hospital Remote"
+
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          VPK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          vpk upload github `
+            --repoUrl https://github.com/${{ github.repository }} `
+            --publish `
+            --releaseName "Remote Desktop ${{ steps.version.outputs.value }}" `
+            --tag ${{ github.ref_name }}
+

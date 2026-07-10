@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Remote Desktop - Quản trị</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-rail">
+            <div class="rail-avatar">RD</div>
+            <button class="rail-button active" title="Machines">●</button>
+            <button class="rail-button" title="Support">!</button>
+        </div>
+        <div class="sidebar-main">
+            <div class="brand">
+                <div>
+                    <h1 id="brandTitle">Quản trị phòng máy</h1>
+                    <span id="connectionStatus">Chưa kết nối</span>
+                </div>
+                <button id="refreshButton" title="Refresh">↻</button>
+            </div>
+            <div class="machine-search">
+                <input id="machineSearchInput" autocomplete="off" placeholder="Tìm kiếm tên máy, IP, người dùng">
+            </div>
+            <div class="sidebar-tabs">
+                <button id="supportTab" class="sidebar-tab active">
+                    <span id="supportTabLabel">Cần hỗ trợ</span> <span id="supportBadge" class="tab-badge">0</span>
+                </button>
+                <button id="onlineTab" class="sidebar-tab">Máy đang chạy</button>
+            </div>
+            <div id="machineList" class="machine-list"></div>
+        </div>
+    </aside>
+
+    <main class="workspace">
+        <section class="remote-panel" id="remotePanel" tabindex="0">
+            <header class="toolbar">
+                <div>
+                    <strong id="selectedName">Chưa chọn máy</strong>
+                    <span id="selectedMeta"></span>
+                </div>
+                <div class="toolbar-actions">
+                    <button id="connectButton">Kết nối (F5)</button>
+                    <button id="remoteControlButton">Điều khiển (F2)</button>
+                    <button id="lockButton">Khóa chuột (F1)</button>
+                    <button id="fullscreenButton">Toàn màn hình (F11)</button>
+                </div>
+            </header>
+            <div class="screen-wrap">
+                <div id="emptyScreen" class="empty-screen"></div>
+                <div id="screenStage" class="screen-stage">
+                    <img id="screenImage" alt="Remote screen">
+                    <img id="remoteCursor" class="remote-cursor" alt="">
+                </div>
+            </div>
+        </section>
+
+        <section class="chat-panel">
+            <header>
+                <strong id="chatTitle">Chat</strong>
+                <span id="chatTarget">Chưa chọn máy</span>
+            </header>
+            <div id="chatLog" class="chat-log"></div>
+            <form id="chatForm" class="chat-form">
+                <input id="chatInput" autocomplete="off" placeholder="Nhắn đến máy đã chọn">
+                <button id="chatSendButton" type="submit">Gửi</button>
+            </form>
+        </section>
+    </main>
+
+    <div id="supportToast" class="support-toast"></div>
+
+    <script src="/vendor/signalr/signalr.min.js"></script>
+    <script src="/app.js"></script>
+</body>
+</html>
