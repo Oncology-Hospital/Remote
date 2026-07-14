@@ -116,3 +116,12 @@ public sealed class SupportRequest
     public string Message { get; set; } = "";
     public DateTime SentAtUtc { get; set; } = DateTime.UtcNow;
 }
+
+public sealed class LicenseCheckResult
+{
+    public string MachineId { get; set; } = "";
+    public bool Succeeded { get; set; }
+    public string Details { get; set; } = "";
+    public string? Error { get; set; }
+    public DateTime CheckedAtUtc { get; set; } = DateTime.UtcNow;
+}

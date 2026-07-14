@@ -40,7 +40,13 @@ const translations = {
         lockTitle: "Khóa hoặc mở khóa chuột tại máy người dùng (F1)",
         lockDisabledTitle: "Bật Remote (F2) trước khi khóa chuột người dùng",
         qualityTitle: "Chất lượng hình ảnh truyền từ máy người dùng",
-        qualityWaiting: "Chờ hình"
+        qualityWaiting: "Chờ hình",
+        licenseCheck: "Bản quyền",
+        licenseCheckTitle: "Kiểm tra bản quyền Windows và Microsoft Office",
+        licenseChecking: "Đang đọc thông tin bản quyền trên máy người dùng...",
+        licenseCheckFailed: "Không thể đọc thông tin bản quyền.",
+        licenseCheckTimeout: "Máy người dùng chưa trả kết quả sau 100 giây. Có thể PowerShell hoặc dịch vụ bản quyền đang bị chặn.",
+        close: "Đóng"
     },
     en: {
         appTitle: "Remote Desktop Admin",
@@ -80,7 +86,13 @@ const translations = {
         lockTitle: "Lock or unlock the user's local mouse (F1)",
         lockDisabledTitle: "Enable Remote (F2) before locking the user's mouse",
         qualityTitle: "Image quality streamed from the Agent computer",
-        qualityWaiting: "Waiting"
+        qualityWaiting: "Waiting",
+        licenseCheck: "Licensing",
+        licenseCheckTitle: "Check Windows and Microsoft Office licensing",
+        licenseChecking: "Reading license information on the user computer...",
+        licenseCheckFailed: "Could not read license information.",
+        licenseCheckTimeout: "The user computer did not return a result within 100 seconds. PowerShell or the licensing service may be blocked.",
+        close: "Close"
     }
 };
 
@@ -112,7 +124,10 @@ const state = {
     isOpeningSupportRequest: false,
     machineSearch: "",
     activeSidebarTab: "support",
-    supportRequests: []
+    supportRequests: [],
+    licenseCheckPending: false,
+    licenseCheckMachineId: null,
+    licenseCheckTimeoutId: null
 };
 
 const machineList = document.getElementById("machineList");
@@ -134,7 +149,13 @@ const qualityStatus = document.getElementById("qualityStatus");
 const connectButton = document.getElementById("connectButton");
 const remoteControlButton = document.getElementById("remoteControlButton");
 const lockButton = document.getElementById("lockButton");
+const licenseButton = document.getElementById("licenseButton");
 const fullscreenButton = document.getElementById("fullscreenButton");
+const licenseDialog = document.getElementById("licenseDialog");
+const licenseDialogTitle = document.getElementById("licenseDialogTitle");
+const licenseDialogMachine = document.getElementById("licenseDialogMachine");
+const licenseDialogOutput = document.getElementById("licenseDialogOutput");
+const licenseDialogClose = document.getElementById("licenseDialogClose");
 const remotePanel = document.getElementById("remotePanel");
 const screenWrap = document.getElementById("screenWrap");
 const screenStage = document.getElementById("screenStage");
@@ -211,6 +232,27 @@ connection.on("ReceiveSupportRequest", request => {
     showSupportToast(request);
 });
 
+connection.on("ReceiveLicenseCheckResult", result => {
+    if (result.machineId !== state.licenseCheckMachineId) {
+        return;
+    }
+
+    clearTimeout(state.licenseCheckTimeoutId);
+    state.licenseCheckTimeoutId = null;
+    state.licenseCheckPending = false;
+    updateLicenseButton();
+
+    const details = String(result.details ?? "").trim();
+    const error = String(result.error ?? "").trim();
+    if (result.succeeded) {
+        licenseDialogOutput.textContent = details || t("licenseCheckFailed");
+    } else {
+        licenseDialogOutput.textContent = [t("licenseCheckFailed"), error, details]
+            .filter(Boolean)
+            .join("\n\n");
+    }
+});
+
 connection.onreconnecting(() => {
     connectionStatus.textContent = t("reconnecting");
 });
@@ -228,6 +270,8 @@ refreshButton.addEventListener("click", () => connection.invoke("JoinAdmin"));
 connectButton.addEventListener("click", toggleRemote);
 remoteControlButton.addEventListener("click", () => toggleRemoteControl());
 lockButton.addEventListener("click", toggleMouseLock);
+licenseButton.addEventListener("click", requestLicenseCheck);
+licenseDialogClose.addEventListener("click", () => licenseDialog.close());
 fullscreenButton.addEventListener("click", toggleFullscreen);
 qualitySelect.addEventListener("change", changeRemoteQuality);
 supportTab.addEventListener("click", () => setSidebarTab("support"));
@@ -247,6 +291,7 @@ if ("ResizeObserver" in window) {
 updateRemoteToggleButton();
 updateRemoteControlButton();
 updateLockButton();
+updateLicenseButton();
 updateFullscreenButton();
 qualitySelect.value = state.qualityMode;
 updateQualityDisplay();
@@ -493,6 +538,43 @@ async function toggleMouseLock() {
 
     const next = !state.selectedMachine.mouseLocked;
     await connection.invoke("SetMouseLock", state.selectedMachineId, next);
+}
+
+async function requestLicenseCheck() {
+    if (!state.selectedMachineId || state.selectedMachine?.status !== "online" || state.licenseCheckPending) {
+        return;
+    }
+
+    state.licenseCheckPending = true;
+    state.licenseCheckMachineId = state.selectedMachineId;
+    updateLicenseButton();
+    licenseDialogMachine.textContent = `${state.selectedMachine.hostName || state.selectedMachine.machineId} - ${state.selectedMachine.ipAddress}`;
+    licenseDialogOutput.textContent = t("licenseChecking");
+    if (!licenseDialog.open) {
+        licenseDialog.showModal();
+    }
+
+    clearTimeout(state.licenseCheckTimeoutId);
+    state.licenseCheckTimeoutId = setTimeout(() => {
+        if (!state.licenseCheckPending) {
+            return;
+        }
+
+        state.licenseCheckPending = false;
+        state.licenseCheckTimeoutId = null;
+        updateLicenseButton();
+        licenseDialogOutput.textContent = t("licenseCheckTimeout");
+    }, 100000);
+
+    try {
+        await connection.invoke("RequestLicenseCheck", state.licenseCheckMachineId);
+    } catch (error) {
+        clearTimeout(state.licenseCheckTimeoutId);
+        state.licenseCheckTimeoutId = null;
+        state.licenseCheckPending = false;
+        updateLicenseButton();
+        licenseDialogOutput.textContent = `${t("licenseCheckFailed")}\n\n${error?.message ?? error}`;
+    }
 }
 
 async function sendPointerEvent(type, event) {
@@ -771,6 +853,10 @@ function applyLanguage() {
     chatTarget.textContent = t("noTarget");
     chatInput.placeholder = t("chatPlaceholder");
     chatSendButton.textContent = t("send");
+    licenseButton.textContent = t("licenseCheck");
+    licenseButton.title = t("licenseCheckTitle");
+    licenseDialogTitle.textContent = t("licenseCheckTitle");
+    licenseDialogClose.textContent = t("close");
     qualitySelect.title = t("qualityTitle");
     qualitySelect.setAttribute("aria-label", t("qualityTitle"));
     updateQualityDisplay();
@@ -831,6 +917,7 @@ function selectMachine(machineId) {
     updateRemoteToggleButton();
     updateRemoteControlButton();
     updateLockButton();
+    updateLicenseButton();
     updateFullscreenButton();
     updateQualityDisplay();
     state.lastCursor = null;
@@ -854,6 +941,7 @@ function renderSelection() {
         updateRemoteToggleButton();
         updateRemoteControlButton();
         updateLockButton();
+        updateLicenseButton();
         return;
     }
 
@@ -866,6 +954,7 @@ function renderSelection() {
     updateRemoteToggleButton();
     updateRemoteControlButton();
     updateLockButton();
+    updateLicenseButton();
 }
 
 function updateRemoteToggleButton() {
@@ -892,6 +981,13 @@ function updateLockButton() {
     lockButton.title = state.remoteControlEnabled
         ? t("lockTitle")
         : t("lockDisabledTitle");
+}
+
+function updateLicenseButton() {
+    const machineOnline = state.selectedMachine?.status === "online";
+    licenseButton.disabled = !state.selectedMachineId || !machineOnline || state.licenseCheckPending;
+    licenseButton.textContent = state.licenseCheckPending ? `${t("licenseCheck")}...` : t("licenseCheck");
+    licenseButton.title = t("licenseCheckTitle");
 }
 
 function updateFullscreenButton() {

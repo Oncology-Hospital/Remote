@@ -387,6 +387,10 @@ button:hover {
     color: #fff;
 }
 
+#licenseButton:disabled {
+    cursor: wait;
+}
+
 #fullscreenButton.active {
     background: #17202a;
     border-color: #17202a;
@@ -516,4 +520,57 @@ button:hover {
 
 .support-toast.visible {
     display: block;
+}
+
+.license-dialog {
+    width: min(820px, calc(100vw - 32px));
+    max-height: calc(100vh - 48px);
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: var(--text);
+    box-shadow: 0 20px 56px rgba(0, 0, 0, 0.28);
+}
+
+.license-dialog::backdrop {
+    background: rgba(13, 19, 26, 0.55);
+}
+
+.license-dialog-content {
+    display: grid;
+    grid-template-rows: auto minmax(220px, 1fr);
+    max-height: calc(100vh - 50px);
+}
+
+.license-dialog-content header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--line);
+}
+
+.license-dialog-content header strong {
+    display: block;
+    font-size: 18px;
+}
+
+.license-dialog-machine {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.license-dialog-output {
+    min-height: 300px;
+    max-height: calc(100vh - 150px);
+    margin: 0;
+    padding: 18px;
+    overflow: auto;
+    background: #111820;
+    color: #e6edf5;
+    font: 13px/1.55 Consolas, "Courier New", monospace;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }

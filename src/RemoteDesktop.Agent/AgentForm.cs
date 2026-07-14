@@ -56,6 +56,10 @@ public sealed class AgentForm : Form
     private MachineInfo _machine = MachineIdentity.Create();
     private bool _isStreaming;
     private bool _isSendingFrame;
+    private bool _isSendingCursor;
+    private bool _isRunningLicenseCheck;
+    private string? _lastRepeatedError;
+    private DateTime _lastRepeatedErrorAtUtc;
     private ScreenStreamOptions _streamOptions = AutoQualityProfiles[1];
     private string _requestedQuality = "auto";
     private int _autoQualityIndex = 1;
@@ -189,7 +193,7 @@ public sealed class AgentForm : Form
             }
         };
         _unlockButton.Click += async (_, _) => await UnlockMouseAsync();
-        _heartbeatTimer.Tick += async (_, _) => await SafeInvokeAsync(() => _connection!.InvokeAsync("Heartbeat", _machine.MachineId));
+        _heartbeatTimer.Tick += async (_, _) => await SendHeartbeatAsync();
         _screenTimer.Tick += async (_, _) => await SendScreenFrameAsync();
         _cursorTimer.Tick += async (_, _) => await SendCursorPositionAsync();
     }
@@ -263,16 +267,37 @@ public sealed class AgentForm : Form
             BeginInvoke(() => SetMouseLocked(locked));
         });
 
+        _connection.On("RunLicenseCheck", RunLicenseCheckAsync);
+
         _connection.Reconnecting += _ =>
         {
-            BeginInvoke(() => _status.Text = AgentLanguage.T("Reconnecting"));
+            BeginInvoke(() =>
+            {
+                PauseTransportTimers();
+                SetStreamingStateWithoutLog(false);
+                SetMouseLocked(false);
+                _status.Text = AgentLanguage.T("Reconnecting");
+                AppendChat(AgentLanguage.T("ServerReconnectingLog"));
+            });
             return Task.CompletedTask;
         };
 
         _connection.Reconnected += async _ =>
         {
-            BeginInvoke(() => _status.Text = AgentLanguage.T("Connected"));
-            await _connection.InvokeAsync("RegisterMachine", _machine);
+            var connection = _connection;
+            if (connection is null)
+            {
+                return;
+            }
+
+            await connection.InvokeAsync("RegisterMachine", _machine);
+            BeginInvoke(() =>
+            {
+                _status.Text = AgentLanguage.T("Connected");
+                _heartbeatTimer.Start();
+                _cursorTimer.Start();
+                AppendChat(AgentLanguage.T("ServerReconnectedLog"));
+            });
         };
 
         _connection.Closed += _ =>
@@ -280,11 +305,11 @@ public sealed class AgentForm : Form
             BeginInvoke(() =>
             {
                 _status.Text = AgentLanguage.T("Disconnected");
-                SetStreaming(false);
+                PauseTransportTimers();
+                SetStreamingStateWithoutLog(false);
                 SetMouseLocked(false);
-                _heartbeatTimer.Stop();
-                _cursorTimer.Stop();
                 _connection = null;
+                AppendChat(AgentLanguage.T("ServerDisconnectedLog"));
                 UpdateConnectionUi();
             });
             return Task.CompletedTask;
@@ -385,19 +410,21 @@ public sealed class AgentForm : Form
     private async Task SendChatAsync()
     {
         var message = _chatInput.Text.Trim();
-        if (message.Length == 0 || _connection is null)
+        var connection = _connection;
+        if (message.Length == 0 || connection?.State != HubConnectionState.Connected)
         {
             return;
         }
 
         _chatInput.Clear();
         AppendChat($"{AgentLanguage.T("Me")}: {message}");
-        await SafeInvokeAsync(() => _connection.InvokeAsync("SendChatToAdmin", _machine.MachineId, message));
+        await SafeInvokeAsync(() => connection.InvokeAsync("SendChatToAdmin", _machine.MachineId, message));
     }
 
     private async Task ShowSupportDialogAsync()
     {
-        if (_connection is null)
+        var connection = _connection;
+        if (connection?.State != HubConnectionState.Connected)
         {
             MessageBox.Show(
                 this,
@@ -430,12 +457,25 @@ public sealed class AgentForm : Form
             SentAtUtc = DateTime.UtcNow
         };
 
-        await SafeInvokeAsync(() => _connection.InvokeAsync("SendSupportRequestToAdmin", request));
+        await SafeInvokeAsync(() => connection.InvokeAsync("SendSupportRequestToAdmin", request));
         AppendChat(AgentLanguage.Format("SupportRequestSent", description));
     }
 
     private void SetStreaming(bool enabled)
     {
+        if (_isStreaming == enabled)
+        {
+            if (enabled && IsConnectionActive())
+            {
+                _screenTimer.Start();
+            }
+            else if (!enabled)
+            {
+                _screenTimer.Stop();
+            }
+            return;
+        }
+
         _isStreaming = enabled;
         _remoteStatus.Text = enabled ? AgentLanguage.T("RemoteStreaming") : AgentLanguage.T("RemoteOff");
 
@@ -463,16 +503,18 @@ public sealed class AgentForm : Form
         // Always restore local input first, even if the server is no longer reachable.
         SetMouseLocked(false);
 
-        if (_connection is not null)
+        var connection = _connection;
+        if (connection?.State == HubConnectionState.Connected)
         {
             await SafeInvokeAsync(() =>
-                _connection.InvokeAsync("SetMouseLock", _machine.MachineId, false));
+                connection.InvokeAsync("SetMouseLock", _machine.MachineId, false));
         }
     }
 
     private async Task SendScreenFrameAsync()
     {
-        if (!_isStreaming || _isSendingFrame || _connection is null)
+        var connection = _connection;
+        if (!_isStreaming || _isSendingFrame || connection?.State != HubConnectionState.Connected)
         {
             return;
         }
@@ -486,13 +528,16 @@ public sealed class AgentForm : Form
                 _machine.MachineId,
                 settings,
                 _requestedQuality);
-            await _connection.InvokeAsync("SendScreenFrame", frame);
+            await connection.InvokeAsync("SendScreenFrame", frame);
             stopwatch.Stop();
             UpdateAutomaticQuality(stopwatch.ElapsedMilliseconds, frame.EncodedBytes);
         }
         catch (Exception ex)
         {
-            AppendChat(AgentLanguage.Format("FrameError", ex.Message));
+            if (!IsExpectedDisconnect(ex))
+            {
+                AppendRepeatedError(AgentLanguage.Format("FrameError", ex.Message));
+            }
         }
         finally
         {
@@ -564,32 +609,41 @@ public sealed class AgentForm : Form
 
     private async Task SendCursorPositionAsync()
     {
-        if (_connection is null)
+        var connection = _connection;
+        if (_isSendingCursor || connection?.State != HubConnectionState.Connected)
         {
             return;
         }
 
-        var initialCursorImage = _lastCursorHandle == IntPtr.Zero;
-        var snapshot = CursorCaptureService.Capture(_machine.MachineId, initialCursorImage);
-        var cursorChanged =
-            snapshot.Handle != _lastCursorHandle ||
-            snapshot.IsVisible != _lastCursorVisible;
-
-        if (cursorChanged && !initialCursorImage)
+        _isSendingCursor = true;
+        try
         {
-            snapshot = CursorCaptureService.Capture(_machine.MachineId, includeImage: true);
-        }
+            var initialCursorImage = _lastCursorHandle == IntPtr.Zero;
+            var snapshot = CursorCaptureService.Capture(_machine.MachineId, initialCursorImage);
+            var cursorChanged =
+                snapshot.Handle != _lastCursorHandle ||
+                snapshot.IsVisible != _lastCursorVisible;
 
-        if (snapshot.ScreenPosition == _lastCursorPosition && !cursorChanged)
+            if (cursorChanged && !initialCursorImage)
+            {
+                snapshot = CursorCaptureService.Capture(_machine.MachineId, includeImage: true);
+            }
+
+            if (snapshot.ScreenPosition == _lastCursorPosition && !cursorChanged)
+            {
+                return;
+            }
+
+            _lastCursorPosition = snapshot.ScreenPosition;
+            _lastCursorHandle = snapshot.Handle;
+            _lastCursorVisible = snapshot.IsVisible;
+
+            await SafeInvokeAsync(() => connection.InvokeAsync("SendCursorPosition", snapshot.Cursor));
+        }
+        finally
         {
-            return;
+            _isSendingCursor = false;
         }
-
-        _lastCursorPosition = snapshot.ScreenPosition;
-        _lastCursorHandle = snapshot.Handle;
-        _lastCursorVisible = snapshot.IsVisible;
-
-        await SafeInvokeAsync(() => _connection.InvokeAsync("SendCursorPosition", snapshot.Cursor));
     }
 
     private async Task SafeInvokeAsync(Func<Task> action)
@@ -600,8 +654,110 @@ public sealed class AgentForm : Form
         }
         catch (Exception ex)
         {
-            AppendChat(AgentLanguage.Format("SignalRError", ex.Message));
+            if (!IsExpectedDisconnect(ex))
+            {
+                AppendRepeatedError(AgentLanguage.Format("SignalRError", ex.Message));
+            }
         }
+    }
+
+    private async Task SendHeartbeatAsync()
+    {
+        var connection = _connection;
+        if (connection?.State != HubConnectionState.Connected)
+        {
+            return;
+        }
+
+        await SafeInvokeAsync(() => connection.InvokeAsync("Heartbeat", _machine.MachineId));
+    }
+
+    private async Task RunLicenseCheckAsync()
+    {
+        if (_isRunningLicenseCheck)
+        {
+            return;
+        }
+
+        _isRunningLicenseCheck = true;
+        AppendChatSafe(AgentLanguage.T("LicenseCheckStarted"));
+        try
+        {
+            var result = await LicenseDiagnosticService.RunAsync(_machine.MachineId);
+            var connection = _connection;
+            if (connection?.State != HubConnectionState.Connected)
+            {
+                AppendChatSafe(AgentLanguage.T("ServerDisconnectedLog"));
+                return;
+            }
+
+            await connection.InvokeAsync("SendLicenseCheckResult", result);
+            AppendChatSafe(result.Succeeded
+                ? AgentLanguage.T("LicenseCheckCompleted")
+                : AgentLanguage.Format("LicenseCheckFailed", result.Error ?? "Không xác định"));
+        }
+        catch (Exception exception)
+        {
+            if (!IsExpectedDisconnect(exception))
+            {
+                AppendChatSafe(AgentLanguage.Format("LicenseCheckFailed", exception.Message));
+            }
+        }
+        finally
+        {
+            _isRunningLicenseCheck = false;
+        }
+    }
+
+    private bool IsConnectionActive()
+    {
+        return _connection?.State == HubConnectionState.Connected;
+    }
+
+    private void PauseTransportTimers()
+    {
+        _heartbeatTimer.Stop();
+        _cursorTimer.Stop();
+        _screenTimer.Stop();
+    }
+
+    private void SetStreamingStateWithoutLog(bool enabled)
+    {
+        _isStreaming = enabled;
+        _remoteStatus.Text = enabled ? AgentLanguage.T("RemoteStreaming") : AgentLanguage.T("RemoteOff");
+        if (!enabled)
+        {
+            _screenTimer.Stop();
+        }
+    }
+
+    private static bool IsExpectedDisconnect(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            if (current.Message.Contains("connection is not active", StringComparison.OrdinalIgnoreCase) ||
+                current.Message.Contains("remote party closed the WebSocket", StringComparison.OrdinalIgnoreCase) ||
+                current.Message.Contains("WebSocket connection without completing", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void AppendRepeatedError(string text)
+    {
+        var now = DateTime.UtcNow;
+        if (string.Equals(text, _lastRepeatedError, StringComparison.Ordinal) &&
+            now - _lastRepeatedErrorAtUtc < TimeSpan.FromSeconds(10))
+        {
+            return;
+        }
+
+        _lastRepeatedError = text;
+        _lastRepeatedErrorAtUtc = now;
+        AppendChat(text);
     }
 
     private void UpdateMachineLabel()
@@ -649,6 +805,39 @@ public sealed class AgentForm : Form
     private void AppendChat(string text)
     {
         _chatLog.AppendText($"[{DateTime.Now:HH:mm:ss}] {text}{Environment.NewLine}");
+
+        const int maximumLines = 250;
+        const int retainedLines = 200;
+        var lines = _chatLog.Lines;
+        if (lines.Length > maximumLines)
+        {
+            _chatLog.Lines = lines[^retainedLines..];
+            _chatLog.SelectionStart = _chatLog.TextLength;
+            _chatLog.ScrollToCaret();
+        }
+    }
+
+    private void AppendChatSafe(string text)
+    {
+        if (IsDisposed || Disposing || !IsHandleCreated)
+        {
+            return;
+        }
+
+        if (InvokeRequired)
+        {
+            try
+            {
+                BeginInvoke(() => AppendChat(text));
+            }
+            catch (InvalidOperationException)
+            {
+                // The form was closed between the handle check and BeginInvoke.
+            }
+            return;
+        }
+
+        AppendChat(text);
     }
 }
 

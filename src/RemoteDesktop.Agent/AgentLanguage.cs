@@ -51,6 +51,12 @@ public static class AgentLanguage
         ["AdminStoppedRemote"] = "Quản trị viên đã dừng xem màn hình.",
         ["FrameError"] = "Lỗi gửi hình ảnh: {0}",
         ["SignalRError"] = "Lỗi SignalR: {0}",
+        ["ServerReconnectingLog"] = "Mất kết nối với máy chủ, đang thử kết nối lại...",
+        ["ServerReconnectedLog"] = "Đã kết nối lại với máy chủ.",
+        ["ServerDisconnectedLog"] = "Máy chủ đã đóng hoặc kết nối đã kết thúc.",
+        ["LicenseCheckStarted"] = "Quản trị viên đang kiểm tra bản quyền Windows và Microsoft Office.",
+        ["LicenseCheckCompleted"] = "Đã gửi kết quả kiểm tra bản quyền cho quản trị viên.",
+        ["LicenseCheckFailed"] = "Không thể kiểm tra bản quyền: {0}",
         ["SupportDialogTitle"] = "Gọi hỗ trợ",
         ["SupportDialogDescription"] = "Mô tả vấn đề cần hỗ trợ"
     };
@@ -91,6 +97,12 @@ public static class AgentLanguage
         ["AdminStoppedRemote"] = "Admin stopped remote view.",
         ["FrameError"] = "Frame error: {0}",
         ["SignalRError"] = "SignalR error: {0}",
+        ["ServerReconnectingLog"] = "Connection to the server was lost. Reconnecting...",
+        ["ServerReconnectedLog"] = "Reconnected to the server.",
+        ["ServerDisconnectedLog"] = "The server closed or the connection ended.",
+        ["LicenseCheckStarted"] = "The administrator is checking Windows and Microsoft Office licensing.",
+        ["LicenseCheckCompleted"] = "License check results were sent to the administrator.",
+        ["LicenseCheckFailed"] = "Could not check licensing: {0}",
         ["SupportDialogTitle"] = "Request support",
         ["SupportDialogDescription"] = "Describe the issue that needs support"
     };

@@ -55,6 +55,7 @@
                     <button id="connectButton">Kết nối (F5)</button>
                     <button id="remoteControlButton">Điều khiển (F2)</button>
                     <button id="lockButton">Khóa chuột (F1)</button>
+                    <button id="licenseButton">Bản quyền</button>
                     <button id="fullscreenButton">Toàn màn hình (F11)</button>
                 </div>
             </header>
@@ -81,6 +82,19 @@
     </main>
 
     <div id="supportToast" class="support-toast"></div>
+
+    <dialog id="licenseDialog" class="license-dialog">
+        <section class="license-dialog-content">
+            <header>
+                <div>
+                    <strong id="licenseDialogTitle">Kiểm tra bản quyền</strong>
+                    <div id="licenseDialogMachine" class="license-dialog-machine"></div>
+                </div>
+                <button id="licenseDialogClose" type="button">Đóng</button>
+            </header>
+            <pre id="licenseDialogOutput" class="license-dialog-output"></pre>
+        </section>
+    </dialog>
 
     <script src="/vendor/signalr/signalr.min.js"></script>
     <script src="/app.js"></script>

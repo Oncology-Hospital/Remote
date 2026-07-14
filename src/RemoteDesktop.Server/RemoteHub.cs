@@ -151,6 +151,28 @@ public sealed class RemoteHub : Hub
         await BroadcastMachines();
     }
 
+    public async Task RequestLicenseCheck(string machineId)
+    {
+        var connectionId = _registry.GetConnectionId(machineId);
+        if (connectionId is null)
+        {
+            throw new HubException("The selected machine is offline.");
+        }
+
+        await Clients.Client(connectionId).SendAsync("RunLicenseCheck");
+    }
+
+    public async Task SendLicenseCheckResult(LicenseCheckResult result)
+    {
+        if (_registry.GetConnectionId(result.MachineId) != Context.ConnectionId)
+        {
+            throw new HubException("The license result does not belong to this machine connection.");
+        }
+
+        result.CheckedAtUtc = DateTime.UtcNow;
+        await Clients.Group(AdminGroup).SendAsync("ReceiveLicenseCheckResult", result);
+    }
+
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         if (_registry.MarkDisconnected(Context.ConnectionId))
