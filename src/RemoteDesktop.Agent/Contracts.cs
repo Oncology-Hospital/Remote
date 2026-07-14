@@ -24,7 +24,20 @@ public sealed class ScreenFrame
     public string Base64Jpeg { get; set; } = "";
     public int Width { get; set; }
     public int Height { get; set; }
+    public int FrameWidth { get; set; }
+    public int FrameHeight { get; set; }
+    public int EncodedBytes { get; set; }
+    public string RequestedQuality { get; set; } = "auto";
+    public string QualityLevel { get; set; } = "720p";
     public DateTime SentAtUtc { get; set; } = DateTime.UtcNow;
+}
+
+public sealed class ScreenStreamOptions
+{
+    public string Mode { get; set; } = "auto";
+    public int MaxWidth { get; set; } = 1280;
+    public long JpegQuality { get; set; } = 60;
+    public int FrameIntervalMs { get; set; } = 250;
 }
 
 public sealed class RemoteInputEvent

@@ -43,6 +43,15 @@
                 </div>
                 <div class="toolbar-actions">
                     <span id="appVersion" class="version-badge">v--</span>
+                    <div id="qualityControl" class="quality-control">
+                        <select id="qualitySelect" aria-label="Chất lượng hình ảnh">
+                            <option value="auto">Auto</option>
+                            <option value="480p">480p</option>
+                            <option value="720p">720p</option>
+                            <option value="1080p">1080p</option>
+                        </select>
+                        <span id="qualityStatus" class="quality-status">--</span>
+                    </div>
                     <button id="connectButton">Kết nối (F5)</button>
                     <button id="remoteControlButton">Điều khiển (F2)</button>
                     <button id="lockButton">Khóa chuột (F1)</button>

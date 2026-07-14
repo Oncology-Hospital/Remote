@@ -301,7 +301,44 @@ button:hover {
 .toolbar-actions {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
+}
+
+.quality-control {
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+}
+
+.quality-control select {
+    min-height: 32px;
+    padding: 0 6px;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+}
+
+.quality-control select:focus {
+    outline: 2px solid rgba(18, 103, 196, 0.25);
+    outline-offset: -2px;
+}
+
+.quality-status {
+    min-width: 48px;
+    padding: 0 8px;
+    border-left: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 32px;
+    text-align: center;
+    white-space: nowrap;
 }
 
 .version-badge {

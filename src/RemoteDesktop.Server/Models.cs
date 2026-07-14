@@ -38,7 +38,49 @@ public sealed class ScreenFrame
     public string Base64Jpeg { get; set; } = "";
     public int Width { get; set; }
     public int Height { get; set; }
+    public int FrameWidth { get; set; }
+    public int FrameHeight { get; set; }
+    public int EncodedBytes { get; set; }
+    public string RequestedQuality { get; set; } = "auto";
+    public string QualityLevel { get; set; } = "720p";
     public DateTime SentAtUtc { get; set; } = DateTime.UtcNow;
+}
+
+public sealed class ScreenStreamOptions
+{
+    public string Mode { get; set; } = "auto";
+    public int MaxWidth { get; set; } = 1280;
+    public long JpegQuality { get; set; } = 60;
+    public int FrameIntervalMs { get; set; } = 250;
+
+    public static ScreenStreamOptions FromMode(string? mode)
+    {
+        return mode?.Trim().ToLowerInvariant() switch
+        {
+            "480p" => new ScreenStreamOptions
+            {
+                Mode = "480p",
+                MaxWidth = 854,
+                JpegQuality = 50,
+                FrameIntervalMs = 300
+            },
+            "1080p" => new ScreenStreamOptions
+            {
+                Mode = "1080p",
+                MaxWidth = 1920,
+                JpegQuality = 75,
+                FrameIntervalMs = 250
+            },
+            "720p" => new ScreenStreamOptions
+            {
+                Mode = "720p",
+                MaxWidth = 1280,
+                JpegQuality = 60,
+                FrameIntervalMs = 250
+            },
+            _ => new ScreenStreamOptions()
+        };
+    }
 }
 
 public sealed class RemoteInputEvent

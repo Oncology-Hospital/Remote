@@ -31,6 +31,7 @@ nên dùng khi cài đặt hoặc gửi ứng dụng cho người dùng.
 - Tìm máy chủ tự động trong mạng LAN qua UDP.
 - Hiển thị danh sách máy đang kết nối.
 - Xem màn hình máy từ xa.
+- Chọn chất lượng truyền màn hình theo mức Auto, 480p, 720p hoặc 1080p.
 - Gửi thao tác chuột và bàn phím.
 - Khóa hoặc mở khóa chuột vật lý trên máy Agent.
 - Gửi yêu cầu hỗ trợ từ Agent đến quản trị viên.
@@ -131,6 +132,18 @@ http://IP_MAY_CHU:5000/remoteHub
 Nhấn `Kết nối` trên Agent. Khi kết nối thành công, chính nút này đổi thành
 `Ngắt kết nối` và có màu đỏ nhạt. Sau khi máy xuất hiện trong danh sách quản
 trị, chọn máy rồi nhấn `Kết nối` để bắt đầu xem màn hình.
+
+Trên thanh điều khiển có thể chọn chất lượng hình ảnh:
+
+- `Auto`: bắt đầu ở 720p, tự nâng lên 1080p khi kết nối ổn định và hạ xuống
+  480p hoặc 720p khi thời gian truyền tăng cao. Mức đang dùng được hiển thị bên
+  cạnh danh sách chọn.
+- `480p`: ưu tiên đường truyền yếu và giảm lưu lượng mạng.
+- `720p`: cân bằng giữa độ rõ và tốc độ phản hồi.
+- `1080p`: ưu tiên độ rõ trên mạng LAN ổn định.
+
+Lựa chọn được ghi nhớ trên máy quản trị và có thể thay đổi ngay trong lúc đang
+xem màn hình, không cần ngắt kết nối.
 
 Các phím tắt chính trong giao diện quản trị:
 

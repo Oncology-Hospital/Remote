@@ -38,7 +38,9 @@ const translations = {
         remoteTitle: "Điều khiển chuột và bàn phím trên máy này (F2)",
         viewOnlyTitle: "Dừng điều khiển máy này (F2)",
         lockTitle: "Khóa hoặc mở khóa chuột tại máy người dùng (F1)",
-        lockDisabledTitle: "Bật Remote (F2) trước khi khóa chuột người dùng"
+        lockDisabledTitle: "Bật Remote (F2) trước khi khóa chuột người dùng",
+        qualityTitle: "Chất lượng hình ảnh truyền từ máy người dùng",
+        qualityWaiting: "Chờ hình"
     },
     en: {
         appTitle: "Remote Desktop Admin",
@@ -76,12 +78,25 @@ const translations = {
         remoteTitle: "Control mouse and keyboard on this machine (F2)",
         viewOnlyTitle: "Stop controlling this machine (F2)",
         lockTitle: "Lock or unlock the user's local mouse (F1)",
-        lockDisabledTitle: "Enable Remote (F2) before locking the user's mouse"
+        lockDisabledTitle: "Enable Remote (F2) before locking the user's mouse",
+        qualityTitle: "Image quality streamed from the Agent computer",
+        qualityWaiting: "Waiting"
     }
 };
 
 function t(key) {
     return translations[language][key] ?? key;
+}
+
+const supportedQualityModes = ["auto", "480p", "720p", "1080p"];
+let savedQualityMode = "auto";
+try {
+    const storedQualityMode = localStorage.getItem("remote-quality-mode");
+    if (supportedQualityModes.includes(storedQualityMode)) {
+        savedQualityMode = storedQualityMode;
+    }
+} catch {
+    savedQualityMode = "auto";
 }
 
 const state = {
@@ -92,6 +107,8 @@ const state = {
     remoteControlEnabled: false,
     lastMouseMoveAt: 0,
     lastCursor: null,
+    qualityMode: savedQualityMode,
+    activeQuality: null,
     machineSearch: "",
     activeSidebarTab: "support",
     supportRequests: []
@@ -110,6 +127,9 @@ const selectedMeta = document.getElementById("selectedMeta");
 const connectionStatus = document.getElementById("connectionStatus");
 const refreshButton = document.getElementById("refreshButton");
 const appVersionLabel = document.getElementById("appVersion");
+const qualityControl = document.getElementById("qualityControl");
+const qualitySelect = document.getElementById("qualitySelect");
+const qualityStatus = document.getElementById("qualityStatus");
 const connectButton = document.getElementById("connectButton");
 const remoteControlButton = document.getElementById("remoteControlButton");
 const lockButton = document.getElementById("lockButton");
@@ -162,6 +182,8 @@ connection.on("ReceiveScreenFrame", frame => {
     screenStage.style.display = "inline-block";
     screenImage.style.display = "block";
     emptyScreen.style.display = "none";
+    state.activeQuality = frame.qualityLevel || state.qualityMode;
+    updateQualityDisplay();
     renderCursor();
 });
 
@@ -204,6 +226,7 @@ connectButton.addEventListener("click", toggleRemote);
 remoteControlButton.addEventListener("click", () => toggleRemoteControl());
 lockButton.addEventListener("click", toggleMouseLock);
 fullscreenButton.addEventListener("click", toggleFullscreen);
+qualitySelect.addEventListener("change", changeRemoteQuality);
 supportTab.addEventListener("click", () => setSidebarTab("support"));
 onlineTab.addEventListener("click", () => setSidebarTab("online"));
 window.addEventListener("resize", renderCursor);
@@ -211,6 +234,8 @@ updateRemoteToggleButton();
 updateRemoteControlButton();
 updateLockButton();
 updateFullscreenButton();
+qualitySelect.value = state.qualityMode;
+updateQualityDisplay();
 renderSidebarTabs();
 
 machineSearchInput.addEventListener("input", () => {
@@ -347,6 +372,8 @@ async function startRemote() {
     updateLockButton();
     updateFullscreenButton();
     state.lastCursor = null;
+    state.activeQuality = null;
+    updateQualityDisplay();
     screenStage.style.display = "none";
     screenImage.style.display = "none";
     remoteCursor.removeAttribute("src");
@@ -354,6 +381,7 @@ async function startRemote() {
     emptyScreen.style.display = "block";
     emptyScreen.textContent = t("waitingFrames");
     remotePanel.focus();
+    await connection.invoke("ChangeRemoteQuality", state.selectedMachineId, state.qualityMode);
     await connection.invoke("StartRemoteSession", state.selectedMachineId);
 }
 
@@ -369,6 +397,8 @@ async function stopRemote() {
     updateLockButton();
     updateFullscreenButton();
     state.lastCursor = null;
+    state.activeQuality = null;
+    updateQualityDisplay();
     screenImage.removeAttribute("src");
     screenStage.style.display = "none";
     screenImage.style.display = "none";
@@ -390,6 +420,23 @@ async function toggleRemote() {
     }
 
     await startRemote();
+}
+
+async function changeRemoteQuality() {
+    const selectedMode = qualitySelect.value.toLowerCase();
+    state.qualityMode = supportedQualityModes.includes(selectedMode) ? selectedMode : "auto";
+    state.activeQuality = null;
+
+    try {
+        localStorage.setItem("remote-quality-mode", state.qualityMode);
+    } catch {
+        // The selected quality still applies for the current application session.
+    }
+
+    updateQualityDisplay();
+    if (state.remoteConnected && state.selectedMachineId) {
+        await connection.invoke("ChangeRemoteQuality", state.selectedMachineId, state.qualityMode);
+    }
 }
 
 async function toggleRemoteControl() {
@@ -653,6 +700,9 @@ function applyLanguage() {
     chatTarget.textContent = t("noTarget");
     chatInput.placeholder = t("chatPlaceholder");
     chatSendButton.textContent = t("send");
+    qualitySelect.title = t("qualityTitle");
+    qualitySelect.setAttribute("aria-label", t("qualityTitle"));
+    updateQualityDisplay();
 }
 
 async function loadApplicationVersion() {
@@ -680,6 +730,12 @@ function updateVersionDisplay() {
     document.title = `${t("appTitle")} - ${displayVersion}`;
 }
 
+function updateQualityDisplay() {
+    const activeQuality = state.activeQuality || (state.remoteConnected ? t("qualityWaiting") : "--");
+    qualityStatus.textContent = activeQuality;
+    qualityControl.title = `${t("qualityTitle")}: ${state.qualityMode === "auto" ? `Auto (${activeQuality})` : activeQuality}`;
+}
+
 function markSupportRead(machineId) {
     state.supportRequests = state.supportRequests.map(request =>
         request.machineId === machineId ? { ...request, unread: false } : request);
@@ -700,10 +756,12 @@ function selectMachine(machineId) {
     state.selectedMachine = state.machines.find(machine => machine.machineId === machineId) ?? null;
     state.remoteConnected = false;
     state.remoteControlEnabled = false;
+    state.activeQuality = null;
     updateRemoteToggleButton();
     updateRemoteControlButton();
     updateLockButton();
     updateFullscreenButton();
+    updateQualityDisplay();
     state.lastCursor = null;
     chatLog.innerHTML = "";
     screenImage.removeAttribute("src");

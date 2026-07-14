@@ -33,6 +33,7 @@ that should be installed or distributed to users.
 - Automatic server discovery over the local network.
 - A list of connected computers.
 - Remote screen viewing.
+- Auto, 480p, 720p, and 1080p screen-stream quality modes.
 - Mouse and keyboard input forwarding.
 - Locking and unlocking the physical mouse on an Agent computer.
 - Support requests sent from an Agent to the administrator.
@@ -134,6 +135,18 @@ Press `Connect` in the Agent. After a successful connection, the same button
 changes to `Disconnect` and uses a light-red background. When the computer
 appears in the administration list, select it and press `Connect` to start
 viewing its screen.
+
+The image-quality selector in the administration toolbar provides these modes:
+
+- `Auto`: starts at 720p, moves up to 1080p on a stable connection, and falls
+  back to 720p or 480p when frame delivery becomes slow. The active level is
+  displayed next to the selector.
+- `480p`: reduces network usage on a weak connection.
+- `720p`: balances image clarity and responsiveness.
+- `1080p`: prioritizes clarity on a stable local network.
+
+The selected mode is remembered on the administrator computer and can be
+changed while viewing the screen without disconnecting the session.
 
 The main administration shortcuts are:
 

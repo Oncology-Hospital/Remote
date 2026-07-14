@@ -87,6 +87,19 @@ public sealed class RemoteHub : Hub
         await BroadcastMachines();
     }
 
+    public async Task ChangeRemoteQuality(string machineId, string qualityMode)
+    {
+        var connectionId = _registry.GetConnectionId(machineId);
+        if (connectionId is null)
+        {
+            return;
+        }
+
+        await Clients.Client(connectionId).SendAsync(
+            "ApplyScreenStreamQuality",
+            ScreenStreamOptions.FromMode(qualityMode));
+    }
+
     public async Task StopRemoteSession(string machineId)
     {
         var connectionId = _registry.GetConnectionId(machineId);

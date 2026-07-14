@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.SignalR.Client;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 
@@ -6,6 +7,13 @@ namespace RemoteDesktop.Agent;
 
 public sealed class AgentForm : Form
 {
+    private static readonly ScreenStreamOptions[] AutoQualityProfiles =
+    [
+        new ScreenStreamOptions { Mode = "480p", MaxWidth = 854, JpegQuality = 50, FrameIntervalMs = 300 },
+        new ScreenStreamOptions { Mode = "720p", MaxWidth = 1280, JpegQuality = 60, FrameIntervalMs = 250 },
+        new ScreenStreamOptions { Mode = "1080p", MaxWidth = 1920, JpegQuality = 75, FrameIntervalMs = 250 }
+    ];
+
     private readonly TextBox _serverUrl = new();
     private readonly TextBox _chatInput = new();
     private readonly TextBox _chatLog = new() { Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical };
@@ -43,6 +51,11 @@ public sealed class AgentForm : Form
     private MachineInfo _machine = MachineIdentity.Create();
     private bool _isStreaming;
     private bool _isSendingFrame;
+    private ScreenStreamOptions _streamOptions = AutoQualityProfiles[1];
+    private string _requestedQuality = "auto";
+    private int _autoQualityIndex = 1;
+    private int _fastFrameCount;
+    private int _slowFrameCount;
     private Point _lastCursorPosition = new(int.MinValue, int.MinValue);
     private IntPtr _lastCursorHandle = IntPtr.Zero;
     private bool _lastCursorVisible;
@@ -218,6 +231,11 @@ public sealed class AgentForm : Form
         _connection.On("StartScreenStream", () =>
         {
             BeginInvoke(() => SetStreaming(true));
+        });
+
+        _connection.On<ScreenStreamOptions>("ApplyScreenStreamQuality", options =>
+        {
+            BeginInvoke(() => ApplyScreenStreamQuality(options));
         });
 
         _connection.On("StopScreenStream", () =>
@@ -449,8 +467,15 @@ public sealed class AgentForm : Form
         _isSendingFrame = true;
         try
         {
-            var frame = ScreenCaptureService.Capture(_machine.MachineId);
+            var settings = GetActiveStreamOptions();
+            var stopwatch = Stopwatch.StartNew();
+            var frame = ScreenCaptureService.Capture(
+                _machine.MachineId,
+                settings,
+                _requestedQuality);
             await _connection.InvokeAsync("SendScreenFrame", frame);
+            stopwatch.Stop();
+            UpdateAutomaticQuality(stopwatch.ElapsedMilliseconds, frame.EncodedBytes);
         }
         catch (Exception ex)
         {
@@ -460,6 +485,68 @@ public sealed class AgentForm : Form
         {
             _isSendingFrame = false;
         }
+    }
+
+    private void ApplyScreenStreamQuality(ScreenStreamOptions? options)
+    {
+        var mode = options?.Mode?.Trim().ToLowerInvariant();
+        _requestedQuality = mode is "480p" or "720p" or "1080p" ? mode : "auto";
+        _autoQualityIndex = 1;
+        _fastFrameCount = 0;
+        _slowFrameCount = 0;
+
+        _streamOptions = _requestedQuality == "auto"
+            ? AutoQualityProfiles[_autoQualityIndex]
+            : new ScreenStreamOptions
+            {
+                Mode = _requestedQuality,
+                MaxWidth = Math.Clamp(options?.MaxWidth ?? 1280, 320, 1920),
+                JpegQuality = Math.Clamp(options?.JpegQuality ?? 60, 30, 90),
+                FrameIntervalMs = Math.Clamp(options?.FrameIntervalMs ?? 250, 100, 1000)
+            };
+
+        _screenTimer.Interval = GetActiveStreamOptions().FrameIntervalMs;
+    }
+
+    private ScreenStreamOptions GetActiveStreamOptions()
+    {
+        return _requestedQuality == "auto"
+            ? AutoQualityProfiles[_autoQualityIndex]
+            : _streamOptions;
+    }
+
+    private void UpdateAutomaticQuality(long elapsedMilliseconds, int encodedBytes)
+    {
+        if (_requestedQuality != "auto")
+        {
+            return;
+        }
+
+        var current = AutoQualityProfiles[_autoQualityIndex];
+        var isSlow = elapsedMilliseconds > Math.Max(450, current.FrameIntervalMs * 2L) || encodedBytes > 1_400_000;
+        var isFast = elapsedMilliseconds < current.FrameIntervalMs * 0.65 && encodedBytes < 750_000;
+
+        _slowFrameCount = isSlow ? _slowFrameCount + 1 : 0;
+        _fastFrameCount = isFast ? _fastFrameCount + 1 : 0;
+
+        if (_slowFrameCount >= 2 && _autoQualityIndex > 0)
+        {
+            _autoQualityIndex--;
+            ResetAutomaticQualityCounters();
+        }
+        else if (_fastFrameCount >= 16 && _autoQualityIndex < AutoQualityProfiles.Length - 1)
+        {
+            _autoQualityIndex++;
+            ResetAutomaticQualityCounters();
+        }
+
+        _screenTimer.Interval = AutoQualityProfiles[_autoQualityIndex].FrameIntervalMs;
+    }
+
+    private void ResetAutomaticQualityCounters()
+    {
+        _fastFrameCount = 0;
+        _slowFrameCount = 0;
     }
 
     private async Task SendCursorPositionAsync()
