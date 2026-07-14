@@ -33,6 +33,22 @@ internal static class AutoUpdateService
                 return;
             }
 
+            var targetVersion = update.TargetFullRelease.Version.ToString();
+            var confirmation = MessageBox.Show(
+                owner,
+                isVietnamese
+                    ? $"Đã phát hiện phiên bản mới v{targetVersion}.{Environment.NewLine}{Environment.NewLine}Phiên bản hiện tại: {ApplicationVersionInfo.Display}{Environment.NewLine}Bạn có muốn cập nhật ngay bây giờ không?"
+                    : $"A new version v{targetVersion} is available.{Environment.NewLine}{Environment.NewLine}Current version: {ApplicationVersionInfo.Display}{Environment.NewLine}Would you like to update now?",
+                isVietnamese ? "Cập nhật phần mềm" : "Software update",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Information,
+                MessageBoxDefaultButton.Button1);
+
+            if (confirmation != DialogResult.Yes)
+            {
+                return;
+            }
+
             using var dialog = new UpdateDialog(manager, update, isVietnamese);
             dialog.ShowDialog(owner);
         }
@@ -99,4 +115,3 @@ internal static class AutoUpdateService
         }
     }
 }
-

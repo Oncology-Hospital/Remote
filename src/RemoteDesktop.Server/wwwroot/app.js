@@ -109,6 +109,7 @@ const state = {
     lastCursor: null,
     qualityMode: savedQualityMode,
     activeQuality: null,
+    isOpeningSupportRequest: false,
     machineSearch: "",
     activeSidebarTab: "support",
     supportRequests: []
@@ -642,9 +643,9 @@ function renderSupportRequests() {
         `;
         item.querySelector(".machine-message").textContent = `${request.userName} · ${request.message}`;
         item.querySelector(".machine-message").textContent = `${request.userName} - ${request.message}`;
-        item.addEventListener("click", () => {
+        item.addEventListener("click", async () => {
             markSupportRead(request.machineId);
-            selectMachine(request.machineId);
+            await openSupportRequest(request.machineId);
         });
         machineList.appendChild(item);
     }
@@ -670,6 +671,38 @@ function getFilteredSupportRequests() {
 
         return haystack.includes(state.machineSearch);
     });
+}
+
+async function openSupportRequest(machineId) {
+    if (state.isOpeningSupportRequest) {
+        return;
+    }
+
+    state.isOpeningSupportRequest = true;
+    try {
+        if (state.remoteConnected && state.selectedMachineId !== machineId) {
+            await stopRemote();
+        }
+
+        if (state.selectedMachineId !== machineId) {
+            selectMachine(machineId);
+        }
+
+        if (!state.remoteConnected) {
+            await startRemote();
+        } else {
+            remotePanel.focus();
+        }
+    } catch (error) {
+        console.error("Could not open support request", error);
+        state.remoteConnected = false;
+        state.remoteControlEnabled = false;
+        updateRemoteToggleButton();
+        updateRemoteControlButton();
+        updateLockButton();
+    } finally {
+        state.isOpeningSupportRequest = false;
+    }
 }
 
 function setSidebarTab(tab) {

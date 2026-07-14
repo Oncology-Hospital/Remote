@@ -37,6 +37,7 @@ that should be installed or distributed to users.
 - Mouse and keyboard input forwarding.
 - Locking and unlocking the physical mouse on an Agent computer.
 - Support requests sent from an Agent to the administrator.
+- Selecting a support-request card immediately opens that computer's screen.
 - Vietnamese and English interfaces.
 - The current version displayed on the mode-selection screen and window titles.
 - Update notifications and visible download, preparation, and installation

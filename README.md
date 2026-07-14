@@ -35,6 +35,7 @@ nên dùng khi cài đặt hoặc gửi ứng dụng cho người dùng.
 - Gửi thao tác chuột và bàn phím.
 - Khóa hoặc mở khóa chuột vật lý trên máy Agent.
 - Gửi yêu cầu hỗ trợ từ Agent đến quản trị viên.
+- Nhấn vào thẻ máy đang cần hỗ trợ để chọn và kết nối xem màn hình ngay.
 - Giao diện tiếng Việt và tiếng Anh.
 - Hiển thị phiên bản hiện tại trên màn hình chọn chế độ và tiêu đề cửa sổ.
 - Tự kiểm tra phiên bản mới từ GitHub Releases, thông báo cho người dùng và

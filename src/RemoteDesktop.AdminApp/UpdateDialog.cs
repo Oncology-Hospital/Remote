@@ -13,8 +13,6 @@ internal sealed class UpdateDialog : Form
     private readonly Label _titleLabel = new();
     private readonly Label _statusLabel = new();
     private readonly ProgressBar _progressBar = new();
-    private readonly Button _updateButton = new();
-    private readonly Button _laterButton = new();
 
     private bool _isUpdating;
     private bool _allowClose;
@@ -28,7 +26,7 @@ internal sealed class UpdateDialog : Form
 
         Text = isVietnamese ? "C\u1EADp nh\u1EADt ph\u1EA7n m\u1EC1m" : "Software update";
         AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(520, 280);
+        ClientSize = new Size(520, 230);
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -36,6 +34,7 @@ internal sealed class UpdateDialog : Form
 
         BuildLayout();
         ApplyText();
+        Shown += async (_, _) => await DownloadAndApplyAsync();
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
@@ -55,14 +54,13 @@ internal sealed class UpdateDialog : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 5,
+            RowCount = 4,
             Padding = new Padding(24, 20, 24, 18)
         };
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
 
         _titleLabel.Dock = DockStyle.Fill;
         _titleLabel.Font = new Font(Font.FontFamily, 15, FontStyle.Bold);
@@ -77,24 +75,6 @@ internal sealed class UpdateDialog : Form
         _progressBar.Maximum = 100;
         _progressBar.Style = ProgressBarStyle.Continuous;
 
-        var actions = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.RightToLeft,
-            WrapContents = false,
-            Padding = new Padding(0, 4, 0, 0)
-        };
-
-        _updateButton.AutoSize = true;
-        _updateButton.MinimumSize = new Size(120, 32);
-        _laterButton.AutoSize = true;
-        _laterButton.MinimumSize = new Size(92, 32);
-        _updateButton.Click += async (_, _) => await DownloadAndApplyAsync();
-        _laterButton.Click += (_, _) => Close();
-
-        actions.Controls.Add(_updateButton);
-        actions.Controls.Add(_laterButton);
-
         root.Controls.Add(_titleLabel, 0, 0);
         root.Controls.Add(_statusLabel, 0, 1);
         root.Controls.Add(_progressBar, 0, 2);
@@ -105,11 +85,8 @@ internal sealed class UpdateDialog : Form
             ForeColor = Color.DimGray,
             TextAlign = ContentAlignment.MiddleRight
         }, 0, 3);
-        root.Controls.Add(actions, 0, 4);
 
         Controls.Add(root);
-        AcceptButton = _updateButton;
-        CancelButton = _laterButton;
     }
 
     private void ApplyText()
@@ -118,10 +95,8 @@ internal sealed class UpdateDialog : Form
             ? $"\u0110\u00E3 ph\u00E1t hi\u1EC7n phi\u00EAn b\u1EA3n m\u1EDBi v{_targetVersion}"
             : $"A new version v{_targetVersion} is available";
         _statusLabel.Text = _isVietnamese
-            ? "Vui l\u00F2ng c\u1EADp nh\u1EADt \u0111\u1EC3 s\u1EED d\u1EE5ng c\u00E1c thay \u0111\u1ED5i m\u1EDBi. B\u1EA1n c\u00F3 th\u1EC3 ti\u1EBFp t\u1EE5c sau n\u1EBFu ch\u01B0a thu\u1EADn ti\u1EC7n."
-            : "Please update to use the latest changes. You can postpone the update if needed.";
-        _updateButton.Text = _isVietnamese ? "C\u1EADp nh\u1EADt ngay" : "Update now";
-        _laterButton.Text = _isVietnamese ? "\u0110\u1EC3 sau" : "Later";
+            ? "Đang chuẩn bị tải bản cập nhật. Vui lòng giữ ứng dụng đang mở cho đến khi quá trình hoàn tất."
+            : "Preparing to download the update. Please keep the application open until the process is complete.";
     }
 
     private async Task DownloadAndApplyAsync()
@@ -133,8 +108,6 @@ internal sealed class UpdateDialog : Form
 
         _isUpdating = true;
         ControlBox = false;
-        _updateButton.Enabled = false;
-        _laterButton.Enabled = false;
         SetProgress(0);
 
         try
@@ -172,10 +145,8 @@ internal sealed class UpdateDialog : Form
                 MessageBoxIcon.Error);
 
             _isUpdating = false;
-            ControlBox = true;
-            _updateButton.Enabled = true;
-            _laterButton.Enabled = true;
-            ApplyText();
+            _allowClose = true;
+            Close();
         }
     }
 
