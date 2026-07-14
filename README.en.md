@@ -152,7 +152,8 @@ The main administration shortcuts are:
 
 - `F1`: lock or unlock the physical mouse on the Agent computer.
 - `F5`: connect or disconnect the remote-control session.
-- `F11`: enter or leave full-screen mode.
+- `F11`: enter or leave full-screen mode. Only the remote screen is displayed
+  in this mode; the application toolbar is hidden.
 
 The `Unlock mouse` button is enabled only while the administrator is blocking
 physical mouse input on the Agent computer. The local user can press it to

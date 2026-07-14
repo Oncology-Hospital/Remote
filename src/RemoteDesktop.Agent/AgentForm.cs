@@ -19,7 +19,12 @@ public sealed class AgentForm : Form
     private readonly TextBox _chatLog = new() { Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical };
     private readonly Label _serverLabel = new() { AutoSize = true, Anchor = AnchorStyles.Left };
     private readonly Label _status = new() { AutoSize = true };
-    private readonly Label _machineInfo = new() { AutoSize = true };
+    private readonly Label _machineInfo = new()
+    {
+        Dock = DockStyle.Fill,
+        AutoEllipsis = true,
+        TextAlign = ContentAlignment.MiddleLeft
+    };
     private readonly Label _remoteStatus = new() { AutoSize = true };
     private readonly Label _lockStatus = new() { AutoSize = true };
     private readonly Label _versionLabel = new()
@@ -62,9 +67,9 @@ public sealed class AgentForm : Form
 
     public AgentForm()
     {
-        Width = 560;
-        Height = 360;
-        MinimumSize = new Size(520, 320);
+        AutoScaleMode = AutoScaleMode.Dpi;
+        ClientSize = new Size(620, 360);
+        MinimumSize = new Size(600, 360);
         StartPosition = FormStartPosition.CenterScreen;
 
         BuildLayout();
@@ -95,19 +100,20 @@ public sealed class AgentForm : Form
             RowCount = 4,
             Padding = new Padding(12)
         };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 104));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
 
-        var top = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 5, RowCount = 2 };
+        var top = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 5, RowCount = 3 };
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112));
         top.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70));
         top.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
-        top.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        top.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+        top.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
 
         top.Controls.Add(_serverLabel, 0, 0);
         _serverUrl.Dock = DockStyle.Fill;
@@ -115,15 +121,22 @@ public sealed class AgentForm : Form
         top.Controls.Add(_connectButton, 2, 0);
         top.Controls.Add(_supportButton, 3, 0);
         top.Controls.Add(_versionLabel, 4, 0);
-        top.Controls.Add(_machineInfo, 1, 1);
+        top.Controls.Add(_machineInfo, 0, 1);
+        top.SetColumnSpan(_machineInfo, 5);
 
-        var statusPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
+        var statusPanel = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false
+        };
         statusPanel.Controls.Add(_status);
         statusPanel.Controls.Add(new Label { Text = " | ", AutoSize = true });
         statusPanel.Controls.Add(_remoteStatus);
         statusPanel.Controls.Add(new Label { Text = " | ", AutoSize = true });
         statusPanel.Controls.Add(_lockStatus);
-        top.Controls.Add(statusPanel, 0, 1);
+        top.Controls.Add(statusPanel, 0, 2);
+        top.SetColumnSpan(statusPanel, 5);
 
         var actionPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
         actionPanel.Controls.Add(_unlockButton);
@@ -593,10 +606,12 @@ public sealed class AgentForm : Form
 
     private void UpdateMachineLabel()
     {
-        _machineInfo.Text = string.Join(" · ", _machine.HostName, _machine.IpAddress, _machine.UserName, $"{_machine.ScreenWidth}x{_machine.ScreenHeight}");
-        _machineInfo.Text = string.Join(" - ", _machine.HostName, _machine.IpAddress, _machine.UserName, $"{_machine.ScreenWidth}x{_machine.ScreenHeight}");
-        _machineInfo.Text = $"{_machine.HostName} · {_machine.IpAddress} · {_machine.UserName} · {_machine.ScreenWidth}x{_machine.ScreenHeight}";
-        _machineInfo.Text = string.Join(" - ", _machine.HostName, _machine.IpAddress, _machine.UserName, $"{_machine.ScreenWidth}x{_machine.ScreenHeight}");
+        _machineInfo.Text = string.Join(
+            " · ",
+            _machine.HostName,
+            _machine.IpAddress,
+            _machine.UserName,
+            $"{_machine.ScreenWidth}x{_machine.ScreenHeight}");
     }
 
     private static string NormalizeServerUrl(string input)

@@ -149,7 +149,8 @@ Các phím tắt chính trong giao diện quản trị:
 
 - `F1`: khóa hoặc mở khóa chuột vật lý trên máy Agent.
 - `F5`: kết nối hoặc ngắt phiên điều khiển.
-- `F11`: bật hoặc thoát chế độ toàn màn hình.
+- `F11`: bật hoặc thoát chế độ toàn màn hình. Chế độ này chỉ hiển thị màn hình
+  máy từ xa trên toàn bộ màn hình, không hiển thị thanh công cụ của ứng dụng.
 
 Nút `Mở khóa chuột` chỉ được bật khi quản trị viên đang khóa chuột vật lý của
 máy Agent. Người dùng tại máy có thể nhấn nút này để lấy lại quyền điều khiển

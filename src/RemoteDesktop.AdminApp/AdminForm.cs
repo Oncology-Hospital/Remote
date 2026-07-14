@@ -20,6 +20,11 @@ public sealed class AdminForm : Form
 
     private WebApplication? _server;
     private CancellationTokenSource? _serverCancellation;
+    private bool _isWebContentFullscreen;
+    private Rectangle _previousBounds;
+    private FormWindowState _previousWindowState;
+    private FormBorderStyle _previousBorderStyle;
+    private bool _previousTopMost;
 
     public AdminForm(string adminName = "admin", string language = "vi")
     {
@@ -80,11 +85,61 @@ public sealed class AdminForm : Form
         await _webView.EnsureCoreWebView2Async(environment);
         _webView.CoreWebView2.Settings.AreDevToolsEnabled = true;
         _webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
+        _webView.CoreWebView2.ContainsFullScreenElementChanged += (_, _) =>
+        {
+            if (IsDisposed || Disposing || !IsHandleCreated)
+            {
+                return;
+            }
+
+            BeginInvoke(() =>
+            {
+                if (!IsDisposed && !Disposing)
+                {
+                    SetWebContentFullscreen(_webView.CoreWebView2.ContainsFullScreenElement);
+                }
+            });
+        };
         var version = Uri.EscapeDataString(ApplicationVersionInfo.Current);
         _webView.Source = new Uri($"{LocalAdminUrl}?lang={_language}&version={version}");
 
         Controls.Remove(_statusLabel);
         Controls.Add(_webView);
         _webView.BringToFront();
+    }
+
+    private void SetWebContentFullscreen(bool enabled)
+    {
+        if (enabled == _isWebContentFullscreen)
+        {
+            return;
+        }
+
+        _isWebContentFullscreen = enabled;
+        SuspendLayout();
+
+        if (enabled)
+        {
+            _previousBounds = WindowState == FormWindowState.Normal ? Bounds : RestoreBounds;
+            _previousWindowState = WindowState;
+            _previousBorderStyle = FormBorderStyle;
+            _previousTopMost = TopMost;
+
+            var targetScreen = Screen.FromControl(this).Bounds;
+            WindowState = FormWindowState.Normal;
+            FormBorderStyle = FormBorderStyle.None;
+            Bounds = targetScreen;
+            TopMost = true;
+        }
+        else
+        {
+            TopMost = _previousTopMost;
+            WindowState = FormWindowState.Normal;
+            FormBorderStyle = _previousBorderStyle;
+            Bounds = _previousBounds;
+            WindowState = _previousWindowState;
+        }
+
+        ResumeLayout(performLayout: true);
     }
 }

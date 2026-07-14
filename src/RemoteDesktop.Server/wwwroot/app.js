@@ -135,6 +135,7 @@ const remoteControlButton = document.getElementById("remoteControlButton");
 const lockButton = document.getElementById("lockButton");
 const fullscreenButton = document.getElementById("fullscreenButton");
 const remotePanel = document.getElementById("remotePanel");
+const screenWrap = document.getElementById("screenWrap");
 const screenStage = document.getElementById("screenStage");
 const screenImage = document.getElementById("screenImage");
 const remoteCursor = document.getElementById("remoteCursor");
@@ -408,7 +409,7 @@ async function stopRemote() {
     emptyScreen.textContent = t("remoteStopped");
     await connection.invoke("StopRemoteSession", state.selectedMachineId);
 
-    if (document.fullscreenElement === remotePanel) {
+    if (document.fullscreenElement === screenWrap) {
         await document.exitFullscreen();
     }
 }
@@ -465,7 +466,8 @@ async function toggleFullscreen() {
         return;
     }
 
-    await remotePanel.requestFullscreen();
+    await screenWrap.requestFullscreen();
+    screenWrap.focus();
 }
 
 async function toggleMouseLock() {
@@ -824,7 +826,7 @@ function updateLockButton() {
 }
 
 function updateFullscreenButton() {
-    const active = document.fullscreenElement === remotePanel;
+    const active = document.fullscreenElement === screenWrap;
     fullscreenButton.disabled = !state.remoteConnected;
     fullscreenButton.classList.toggle("active", active);
     fullscreenButton.textContent = active ? t("exitFullscreen") : t("fullscreen");

@@ -27,10 +27,8 @@ internal sealed class UpdateDialog : Form
         _targetVersion = update.TargetFullRelease.Version.ToString();
 
         Text = isVietnamese ? "C\u1EADp nh\u1EADt ph\u1EA7n m\u1EC1m" : "Software update";
-        Width = 520;
-        Height = 260;
-        MinimumSize = new Size(520, 260);
-        MaximumSize = new Size(520, 260);
+        AutoScaleMode = AutoScaleMode.Dpi;
+        ClientSize = new Size(520, 280);
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -64,7 +62,7 @@ internal sealed class UpdateDialog : Form
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
-        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
 
         _titleLabel.Dock = DockStyle.Fill;
         _titleLabel.Font = new Font(Font.FontFamily, 15, FontStyle.Bold);
@@ -83,7 +81,8 @@ internal sealed class UpdateDialog : Form
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.RightToLeft,
-            WrapContents = false
+            WrapContents = false,
+            Padding = new Padding(0, 4, 0, 0)
         };
 
         _updateButton.AutoSize = true;
@@ -205,4 +204,3 @@ internal sealed class UpdateDialog : Form
             : $"Downloading and preparing the update... {progress}%";
     }
 }
-
