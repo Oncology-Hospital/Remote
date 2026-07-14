@@ -42,6 +42,7 @@ that should be installed or distributed to users.
 - The current version displayed on the mode-selection screen and window titles.
 - Update notifications and visible download, preparation, and installation
   progress for releases from GitHub.
+- Update checks complete before the login screen becomes available.
 
 ## Requirements
 
@@ -148,6 +149,10 @@ The image-quality selector in the administration toolbar provides these modes:
 
 The selected mode is remembered on the administrator computer and can be
 changed while viewing the screen without disconnecting the session.
+
+Quality levels only change the transmitted pixel count and JPEG compression.
+The administration interface keeps the viewing area at the same size and source
+aspect ratio, so selecting 480p no longer shrinks the displayed screen.
 
 The main administration shortcuts are:
 

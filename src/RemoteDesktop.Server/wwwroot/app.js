@@ -181,11 +181,12 @@ connection.on("ReceiveScreenFrame", frame => {
     }
 
     screenImage.src = `data:image/jpeg;base64,${frame.base64Jpeg}`;
-    screenStage.style.display = "inline-block";
+    screenStage.style.display = "block";
     screenImage.style.display = "block";
     emptyScreen.style.display = "none";
     state.activeQuality = frame.qualityLevel || state.qualityMode;
     updateQualityDisplay();
+    resizeScreenStage();
     renderCursor();
 });
 
@@ -231,7 +232,18 @@ fullscreenButton.addEventListener("click", toggleFullscreen);
 qualitySelect.addEventListener("change", changeRemoteQuality);
 supportTab.addEventListener("click", () => setSidebarTab("support"));
 onlineTab.addEventListener("click", () => setSidebarTab("online"));
-window.addEventListener("resize", renderCursor);
+window.addEventListener("resize", () => {
+    resizeScreenStage();
+    renderCursor();
+});
+
+if ("ResizeObserver" in window) {
+    const screenResizeObserver = new ResizeObserver(() => {
+        resizeScreenStage();
+        renderCursor();
+    });
+    screenResizeObserver.observe(screenWrap);
+}
 updateRemoteToggleButton();
 updateRemoteControlButton();
 updateLockButton();
@@ -279,7 +291,10 @@ document.addEventListener("keydown", event => {
 
 document.addEventListener("fullscreenchange", () => {
     updateFullscreenButton();
-    renderCursor();
+    requestAnimationFrame(() => {
+        resizeScreenStage();
+        renderCursor();
+    });
 });
 
 chatForm.addEventListener("submit", async event => {
@@ -512,6 +527,27 @@ function getRemotePoint(event) {
         x: Math.round(xRatio * state.selectedMachine.screenWidth),
         y: Math.round(yRatio * state.selectedMachine.screenHeight)
     };
+}
+
+function resizeScreenStage() {
+    if (
+        !state.remoteConnected ||
+        !state.selectedMachine ||
+        screenStage.style.display === "none"
+    ) {
+        return;
+    }
+
+    const remoteWidth = state.selectedMachine.screenWidth || 1;
+    const remoteHeight = state.selectedMachine.screenHeight || 1;
+    const availableWidth = Math.max(1, screenWrap.clientWidth);
+    const availableHeight = Math.max(1, screenWrap.clientHeight);
+    const scale = Math.min(
+        availableWidth / remoteWidth,
+        availableHeight / remoteHeight);
+
+    screenStage.style.width = `${Math.max(1, Math.floor(remoteWidth * scale))}px`;
+    screenStage.style.height = `${Math.max(1, Math.floor(remoteHeight * scale))}px`;
 }
 
 function renderCursor() {

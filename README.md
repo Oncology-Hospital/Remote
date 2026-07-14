@@ -40,6 +40,7 @@ nên dùng khi cài đặt hoặc gửi ứng dụng cho người dùng.
 - Hiển thị phiên bản hiện tại trên màn hình chọn chế độ và tiêu đề cửa sổ.
 - Tự kiểm tra phiên bản mới từ GitHub Releases, thông báo cho người dùng và
   hiển thị tiến trình tải, chuẩn bị, cài đặt.
+- Hoàn tất kiểm tra cập nhật trước khi cho phép mở màn hình đăng nhập.
 
 ## Yêu cầu
 
@@ -145,6 +146,10 @@ Trên thanh điều khiển có thể chọn chất lượng hình ảnh:
 
 Lựa chọn được ghi nhớ trên máy quản trị và có thể thay đổi ngay trong lúc đang
 xem màn hình, không cần ngắt kết nối.
+
+Các mức chất lượng chỉ thay đổi số pixel và mức nén được truyền qua mạng. Kích
+thước vùng hiển thị trong giao diện quản trị được giữ nguyên theo tỷ lệ màn hình
+gốc, vì vậy chuyển sang 480p không làm khung xem bị thu nhỏ.
 
 Các phím tắt chính trong giao diện quản trị:
 
