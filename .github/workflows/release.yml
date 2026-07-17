@@ -68,6 +68,7 @@ jobs:
             --packVersion ${{ steps.version.outputs.value }} `
             --packDir ./publish `
             --mainExe RemoteDesktop.AdminApp.exe `
+            --icon ./src/RemoteDesktop.AdminApp/Assets/app-icon.ico `
             --packTitle "Oncology Hospital Remote"
 
       - name: Create CNTT installer copy

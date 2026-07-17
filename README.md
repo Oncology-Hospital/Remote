@@ -213,8 +213,11 @@ dotnet publish .\src\RemoteDesktop.AdminApp\RemoteDesktop.AdminApp.csproj `
 ```
 
 Thư mục `publish` chỉ dùng làm đầu vào để tạo installer. Người dùng cuối nên
-cài file `CNTT_Remote.exe` từ GitHub Releases để Velopack
+cài file `CNTT_Remote.exe` từ thư mục mạng nội bộ hoặc GitHub Releases để Velopack
 có thể quản lý các lần cập nhật tiếp theo.
+
+Quy trình phát hành đồng thời lên GitHub và mạng nội bộ được mô tả tại
+[TRIEN_KHAI.md](TRIEN_KHAI.md).
 
 ## Phát hành phiên bản mới
 

@@ -217,8 +217,10 @@ dotnet publish .\src\RemoteDesktop.AdminApp\RemoteDesktop.AdminApp.csproj `
 ```
 
 The `publish` directory is an input for the installer build. End users should
-install `CNTT_Remote.exe` from GitHub Releases so that
+install `CNTT_Remote.exe` from the LAN share or GitHub Releases so that
 Velopack can manage future updates.
+
+See [TRIEN_KHAI.md](TRIEN_KHAI.md) for the GitHub and LAN publishing workflow.
 
 ## Publishing a new version
 

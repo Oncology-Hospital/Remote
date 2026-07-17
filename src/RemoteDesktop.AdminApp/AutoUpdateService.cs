@@ -7,6 +7,7 @@ namespace RemoteDesktop.AdminApp;
 internal static class AutoUpdateService
 {
     private const string RepositoryUrl = "https://github.com/Oncology-Hospital/Remote";
+    private const string LanReleaseDirectory = @"\\10.100.100.4\Website\App_IT\Remote";
 
     private static readonly string DataDirectory = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -21,18 +22,13 @@ internal static class AutoUpdateService
     {
         try
         {
-            var source = new GithubSource(
-                RepositoryUrl,
-                accessToken: null,
-                prerelease: false);
-
-            var manager = new UpdateManager(source);
-            var update = await manager.CheckForUpdatesAsync();
-            if (update is null)
+            var candidate = await FindAvailableUpdateAsync();
+            if (candidate is null)
             {
                 return;
             }
 
+            var (manager, update) = candidate;
             var targetVersion = update.TargetFullRelease.Version.ToString();
             var confirmation = MessageBox.Show(
                 owner,
@@ -57,6 +53,65 @@ internal static class AutoUpdateService
             // A failed update check must not prevent the application from starting.
             LogError(exception);
         }
+    }
+
+    private static async Task<UpdateCandidate?> FindAvailableUpdateAsync()
+    {
+        UpdateCandidate? latest = null;
+
+        foreach (var manager in CreateUpdateManagers())
+        {
+            try
+            {
+                var update = await manager.CheckForUpdatesAsync();
+                if (update is null)
+                {
+                    continue;
+                }
+
+                if (latest is null || IsNewer(update, latest.Update))
+                {
+                    latest = new UpdateCandidate(manager, update);
+                }
+            }
+            catch (Exception exception)
+            {
+                // A source can be unavailable (for example, a laptop outside the LAN).
+                // Continue with the remaining source instead of blocking application startup.
+                LogError(exception);
+            }
+        }
+
+        return latest;
+    }
+
+    private static IEnumerable<UpdateManager> CreateUpdateManagers()
+    {
+        if (Directory.Exists(LanReleaseDirectory))
+        {
+            yield return new UpdateManager(
+                new SimpleFileSource(new DirectoryInfo(LanReleaseDirectory)));
+        }
+
+        yield return new UpdateManager(
+            new GithubSource(
+                RepositoryUrl,
+                accessToken: null,
+                prerelease: false));
+    }
+
+    private static bool IsNewer(UpdateInfo candidate, UpdateInfo current)
+    {
+        var candidateVersion = candidate.TargetFullRelease.Version.ToString();
+        var currentVersion = current.TargetFullRelease.Version.ToString();
+
+        if (Version.TryParse(candidateVersion, out var parsedCandidate)
+            && Version.TryParse(currentVersion, out var parsedCurrent))
+        {
+            return parsedCandidate > parsedCurrent;
+        }
+
+        return string.Compare(candidateVersion, currentVersion, StringComparison.OrdinalIgnoreCase) > 0;
     }
 
     public static void ShowCompletedUpdateIfPending(IWin32Window owner, bool isVietnamese)
@@ -114,4 +169,6 @@ internal static class AutoUpdateService
             // Logging must never turn a recoverable update error into a startup failure.
         }
     }
+
+    private sealed record UpdateCandidate(UpdateManager Manager, UpdateInfo Update);
 }
